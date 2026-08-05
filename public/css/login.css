@@ -2,8 +2,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body, html { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#222 }
 
-.login-root { display:flex; min-height:100vh; }
-.left-panel { flex:1; position:relative; background:linear-gradient(180deg,#e6f2ff 0%, #f7fbff 100%); display:flex; align-items:center; justify-content:center; padding:40px; overflow:hidden; }
+.login-root { display:flex; min-height:100vh; width: 100%; max-width: 1400px; margin: 0 auto; }
+.left-panel { flex:1; min-width:360px; position:relative; background:linear-gradient(180deg,#e6f2ff 0%, #f7fbff 100%); display:flex; align-items:center; justify-content:center; padding:40px; overflow:hidden; }
 .hero-art { width:100%; height:100%; background-image: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0)), linear-gradient(135deg,#cfe9ff 0%, #9fd7ff 40%, #bfe2ff 100%); border-radius:28px; box-shadow: inset 0 40px 80px rgba(255,255,255,0.25); }
 .welcome-card { position:absolute; left:48px; bottom:48px; background:rgba(255,255,255,0.6); backdrop-filter: blur(6px); padding:20px 28px; border-radius:12px; text-align:center; color:#fff; }
 .welcome-card h3 { font-size:16px; color:#fff; margin-bottom:6px }
@@ -35,6 +35,18 @@ body, html { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 .signup { text-align:center; color:#777; font-size:13px; margin-top:6px }
 
 @media (max-width:900px) { .right-panel { width:100%; min-height:100vh; } .left-panel { display:none } }
+
+@media (max-width:1200px) {
+    .left-panel { padding: 32px; }
+    .right-panel { padding: 48px; }
+    .form-wrap { max-width: 420px; }
+}
+
+@media (max-width:1024px) {
+    .login-root { flex-direction: column; }
+    .left-panel, .right-panel { width: 100%; padding: 28px; }
+    .left-panel { min-height: 320px; }
+}
 
 /* Dashboard page */
 .dashboard-page {
@@ -408,32 +420,31 @@ body, html { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
     }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 980px) {
+    .dashboard-page {
+        padding: 20px;
+    }
     .dashboard-cards {
         grid-template-columns: 1fr;
     }
-
     .profile-card {
         width: 100%;
     }
-
     .dashboard-header {
         flex-direction: column;
         align-items: stretch;
+        gap: 12px;
     }
 }
 
 @media (max-width: 720px) {
-    .dashboard-cards {
-        grid-template-columns: 1fr;
-    }
-
-    .profile-card {
-        width: 100%;
-    }
-
-    .dashboard-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
+    .login-root { flex-direction: column; }
+    .left-panel, .right-panel { width: 100%; padding: 20px; }
+    .right-panel { min-height: 100vh; }
+    .hero-art { border-radius: 22px; }
+    .dashboard-page { gap: 14px; padding: 16px; }
+    .dashboard-header { gap: 12px; }
+    .dashboard-card { padding: 10px; }
+    .activity-card { padding: 14px; }
+    .activity-table th, .activity-table td { padding: 8px; font-size: 0.82rem; }
 }
