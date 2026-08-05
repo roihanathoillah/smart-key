@@ -31,7 +31,7 @@ class LoginController extends Controller
 
         if (Login::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended('/');
+            return redirect()->intended(route('dashboard'));
         }
 
         return back()->withErrors(['password' => 'The provided credentials do not match our records.'])->withInput();
