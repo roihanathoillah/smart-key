@@ -1,0 +1,37 @@
+/* Basic reset */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body, html { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#222 }
+
+.login-root { display:flex; min-height:100vh; }
+.left-panel { flex:1; position:relative; background:linear-gradient(180deg,#e6f2ff 0%, #f7fbff 100%); display:flex; align-items:center; justify-content:center; padding:40px; overflow:hidden; }
+.hero-art { width:100%; height:100%; background-image: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0)), linear-gradient(135deg,#cfe9ff 0%, #9fd7ff 40%, #bfe2ff 100%); border-radius:28px; box-shadow: inset 0 40px 80px rgba(255,255,255,0.25); }
+.welcome-card { position:absolute; left:48px; bottom:48px; background:rgba(255,255,255,0.6); backdrop-filter: blur(6px); padding:20px 28px; border-radius:12px; text-align:center; color:#fff; }
+.welcome-card h3 { font-size:16px; color:#fff; margin-bottom:6px }
+.welcome-card p { font-size:13px; color:#f1f7ff; opacity:0.95 }
+.welcome-card .dots { margin-top:10px; font-size:12px; color:#eaf4ff }
+
+.right-panel { width:520px; background:#fff; display:flex; align-items:center; justify-content:center; padding:64px; }
+.form-wrap { width:100%; max-width:360px; }
+.form-wrap h1 { text-align:center; font-size:22px; margin-bottom:18px; font-weight:700 }
+
+.method-tabs { display:flex; gap:18px; justify-content:center; margin-bottom:12px; }
+.method-tabs .tab { background:none; border:none; padding:6px 10px; font-weight:600; color:#777; border-bottom:2px solid transparent; cursor:pointer }
+.method-tabs .tab.active { color:#111; border-bottom-color:#1e90ff }
+
+.field { margin-bottom:12px; }
+.field label { display:block; font-size:12px; color:#666; margin-bottom:6px }
+.field input { width:100%; padding:12px 14px; border:1px solid #eee; border-radius:6px; background:#fafafa }
+
+.password-wrap { display:flex; align-items:center; gap:8px; }
+.password-wrap input { flex:1 }
+.show-pass { background:transparent; border:none; cursor:pointer; font-size:16px }
+
+.forgot { text-align:right; color:#666; font-size:12px; margin-bottom:12px }
+.btn-primary { width:100%; padding:12px 18px; border:none; border-radius:6px; background:linear-gradient(90deg,#79c1ff,#a0d8ff); color:#fff; font-weight:700; cursor:pointer; box-shadow:0 6px 18px rgba(35,154,255,0.12) }
+
+.divider { text-align:center; color:#999; font-size:13px; margin:18px 0 }
+.socials { display:flex; gap:14px; justify-content:center; margin-bottom:8px }
+.social { width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:#f4f6f8; color:#333; text-decoration:none }
+.signup { text-align:center; color:#777; font-size:13px; margin-top:6px }
+
+@media (max-width:900px) { .right-panel { width:100%; min-height:100vh; } .left-panel { display:none } }
