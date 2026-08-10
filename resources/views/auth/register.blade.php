@@ -9,6 +9,9 @@
 <body>
 <div class="login-root">
     <div class="left-panel">
+        <div class="brand-image">
+            <img src="/images/1000452284.png" alt="Smart Key Logo">
+        </div>
         <div class="hero-art" aria-hidden="true"></div>
         <div class="welcome-card">
             <h3>Welcome to the community</h3>
@@ -65,9 +68,9 @@
 
             <div class="divider">Sign in With</div>
             <div class="socials">
-                <a class="social" href="#" aria-label="Facebook">f</a>
-                <a class="social" href="#" aria-label="Google">G</a>
-                <a class="social" href="#" aria-label="Apple"></a>
+                <a class="social" href="#" aria-label="Facebook"><img src="/images/facebook-logo-facebook-social-media-icon-free-png.png" alt="Facebook"></a>
+                <a class="social" href="#" aria-label="Google"><img src="/images/icons8-google-48.png" alt="Google"></a>
+                <a class="social" href="#" aria-label="Apple"><img src="/images/icons8-apple-inc-24.png" alt="Apple"></a>
             </div>
 
             <p class="signup">Already have an account? <a href="/login">Sign in</a></p>
