@@ -9,6 +9,9 @@
 <body>
 <div class="login-root">
     <div class="left-panel">
+        <div class="brand-image">
+            <img src="/images/1000452284.png" alt="Smart Key Logo">
+        </div>
         <div class="hero-art" aria-hidden="true"></div>
         <div class="welcome-card">
             <h3>Welcome to the community</h3>
@@ -23,7 +26,6 @@
 
             <div class="method-tabs" role="tablist">
                 <button class="tab active" data-target="email" role="tab">E-mail</button>
-                <button class="tab" data-target="mobile" role="tab">Mobile Number</button>
             </div>
 
             <form id="loginForm" action="{{ url('/login') }}" method="POST">
@@ -44,12 +46,6 @@
                     @error('email')<div class="error" style="color:#c00;font-size:13px">{{ $message }}</div>@enderror
                 </div>
 
-                <div class="field" data-for="mobile" style="display:none;">
-                    <label for="mobile">Mobile Number</label>
-                    <input id="mobile" name="mobile" type="tel" placeholder="0812xxxxxxx" value="{{ old('mobile') }}">
-                    @error('mobile')<div class="error" style="color:#c00;font-size:13px">{{ $message }}</div>@enderror
-                </div>
-
                 <div class="field" data-for="password">
                     <label for="password">Password</label>
                     <div class="password-wrap">
@@ -61,14 +57,14 @@
 
                 <div class="forgot">Forgot password?</div>
 
-                <button type="submit" class="btn-primary">Continue</button>
+                <button type="submit" class="btn-primary">LOGIN</button>
             </form>
 
             <div class="divider">Sign in With</div>
             <div class="socials">
-                <a class="social" href="#" aria-label="Facebook">f</a>
-                <a class="social" href="#" aria-label="Google">G</a>
-                <a class="social" href="#" aria-label="Apple"></a>
+                <a class="social" href="#" aria-label="Facebook"><img src="/images/facebook-logo-facebook-social-media-icon-free-png.png" alt="Facebook"></a>
+                <a class="social" href="#" aria-label="Google"><img src="/images/icons8-google-48.png" alt="Google"></a>
+                <a class="social" href="#" aria-label="Apple"><img src="/images/icons8-apple-inc-24.png" alt="Apple"></a>
             </div>
 
             <p class="signup">Dont have an account? <a href="/register">Sign up</a></p>

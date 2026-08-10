@@ -36,4 +36,3 @@ class Login
 		Auth::logout();
 	}
 }
-

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Login;
 
 class LoginController extends Controller
@@ -31,9 +32,19 @@ class LoginController extends Controller
 
         if (Login::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended(route('dashboard'));
+
+            $redirectRoute = $this->isSuperAdmin(Auth::user())
+                ? route('super.admin')
+                : route('dashboard');
+
+            return redirect()->intended($redirectRoute);
         }
 
         return back()->withErrors(['password' => 'The provided credentials do not match our records.'])->withInput();
+    }
+
+    protected function isSuperAdmin($user): bool
+    {
+        return $user && $user->email === 'admin@smartkey.com';
     }
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>Super Admin Dashboard</title>
     <link rel="stylesheet" href="/css/login.css">
 </head>
 <body>
@@ -20,20 +20,19 @@
             <div class="sidebar-section">
                 <h2>Menu</h2>
                 <nav class="dashboard-nav">
-                    <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">Dashboard</a>
-                    <a href="{{ route('karyawan') }}" class="{{ request()->routeIs('karyawan') ? 'active' : '' }}">Daftar Karyawan</a>
-                    <a href="{{ route('history') }}" class="{{ request()->routeIs('history') ? 'active' : '' }}">History</a>
-                    <a href="{{ route('checkin') }}" class="{{ request()->routeIs('checkin') ? 'active' : '' }}">Chekin/Chekout</a>
+                    <a href="{{ route('super.admin') }}" class="{{ request()->routeIs('super.admin') ? 'active' : '' }}">Dashboard</a>
+                    <a href="{{ route('karyawan.super') }}" class="{{ request()->routeIs('karyawan.super') ? 'active' : '' }}">Daftar Karyawan</a>
+                    <a href="{{ route('history.super') }}" class="{{ request()->routeIs('history.super') ? 'active' : '' }}">History</a>
                 </nav>
             </div>
 
             <div class="sidebar-section">
-                <h2>Main Menu</h2>
+                <h2>ADMIN</h2>
                 <nav class="dashboard-nav">
                     <details class="sidebar-dropdown">
                         <summary>Setting</summary>
                         <div class="sidebar-dropdown-menu">
-                            <a href="{{ route('profile') }}" class="{{ request()->routeIs('profile') ? 'active' : '' }}">Profile</a>
+                            <a href="{{ route('profile.super') }}" class="{{ request()->routeIs('profile.super') ? 'active' : '' }}">Profile</a>
                             <a href="#">Notification</a>
                             <a href="#">Security</a>
                         </div>
@@ -46,13 +45,13 @@
         <main class="dashboard-content">
             <header class="dashboard-header">
                 <div>
-                    <h1>Welcome back, Admin</h1>
+                    <h1>Super Admin Dashboard</h1>
                 </div>
                 <div class="profile-card">
-                    <div class="profile-avatar">A</div>
+                    <div class="profile-avatar">S</div>
                     <div>
-                        <p>Administrator</p>
-                        <strong>Admin Smart Key</strong>
+                        <p>Super Admin</p>
+                        <strong>Smart Key</strong>
                     </div>
                 </div>
             </header>
