@@ -2,13 +2,13 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body, html { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#222; overflow-x: hidden; }
 
-.login-root { display:flex; min-height:100vh; width: 100%; max-width: none; margin: 0 auto; background:#eef2f7; gap: 0; padding: 0; }
-.left-panel, .right-panel { min-width:0; height: 100vh; }
-.left-panel { flex:0 0 55%; position:relative; background:#ffffff; display:flex; align-items:flex-start; justify-content:center; padding:20px 20px 20px 28px; overflow:hidden; border-radius: 0; }
-.brand-image { position:absolute; top:16px; left:24px; z-index:2; }
-.brand-image img { width: 110px; display: block; }
-.hero-art { position:absolute; left:16px; right:0; top:100px; bottom:20px; background-image: url('/images/Screenshot 2026-08-09 230622.png'); background-size: contain; background-repeat: no-repeat; background-position: center bottom; border-radius:0; box-shadow: none; }
-.welcome-card { display: none; }
+.login-root { display:flex; min-height:100vh; width: 100%; max-width: 1400px; margin: 0 auto; }
+.left-panel { flex:1; min-width:360px; position:relative; background:linear-gradient(180deg,#e6f2ff 0%, #f7fbff 100%); display:flex; align-items:center; justify-content:center; padding:40px; overflow:hidden; }
+.hero-art { width:100%; height:100%; background-image: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0)), linear-gradient(135deg,#cfe9ff 0%, #9fd7ff 40%, #bfe2ff 100%); border-radius:28px; box-shadow: inset 0 40px 80px rgba(255,255,255,0.25); }
+.welcome-card { position:absolute; left:48px; bottom:48px; background:rgba(255,255,255,0.6); backdrop-filter: blur(6px); padding:20px 28px; border-radius:12px; text-align:center; color:#fff; }
+.welcome-card h3 { font-size:16px; color:#fff; margin-bottom:6px }
+.welcome-card p { font-size:13px; color:#f1f7ff; opacity:0.95 }
+.welcome-card .dots { margin-top:10px; font-size:12px; color:#eaf4ff }
 
 .right-panel { flex:0 0 45%; background:#ffffff; display:flex; align-items:center; justify-content:center; padding:64px 44px; box-shadow: none; border-radius: 0; }
 .form-wrap { width:100%; max-width:380px; }
@@ -46,15 +46,9 @@ body, html { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 @media (max-width:1024px) {
     .login-root { flex-direction: column; }
     .left-panel, .right-panel { width: 100%; padding: 28px; }
-    .left-panel { min-height: 420px; }
+    .left-panel { min-height: 320px; }
     .right-panel { padding: 32px; }
     .form-wrap { max-width: 100%; }
-}
-
-@media (max-width:1024px) {
-    .login-root { flex-direction: column; }
-    .left-panel, .right-panel { width: 100%; padding: 28px; }
-    .left-panel { min-height: 320px; }
 }
 
 /* Dashboard page */
@@ -1390,16 +1384,14 @@ body, html { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
 @media (max-width: 980px) {
     .dashboard-page {
-        padding: 18px;
+        padding: 20px;
     }
     .dashboard-cards {
         grid-template-columns: 1fr;
     }
-    
     .profile-card {
         width: 100%;
     }
-
     .dashboard-header {
         flex-direction: column;
         align-items: stretch;
