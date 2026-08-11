@@ -48,11 +48,6 @@
                 </div>
 
                 <div class="field">
-                    <label for="phone">Phone</label>
-                    <input id="phone" name="phone" type="tel" placeholder="Phone (optional)" value="{{ old('phone') }}">
-                </div>
-
-                <div class="field">
                     <label for="password">Password</label>
                     <div class="password-wrap">
                         <input id="password" name="password" type="password" placeholder="Password">
