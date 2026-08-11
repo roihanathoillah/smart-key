@@ -259,12 +259,71 @@ body, html { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
     width: 100%;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
     .dashboard-page { grid-template-columns: 1fr; }
     .dashboard-sidebar { min-height: auto; width: 100%; }
-    .profile-page { padding: 20px; }
-    .profile-row { grid-template-columns: 1fr; }
-    .profile-search-bar { min-width: 100%; }
+    .dashboard-sidebar { padding: 20px; }
+    .dashboard-content { padding: 0; }
+    .dashboard-header { flex-wrap: wrap; align-items: flex-start; }
+    .profile-card { width: 100%; justify-content: space-between; gap: 12px; }
+    .dashboard-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dashboard-card { padding: 16px; }
+    .activity-card { padding: 18px; }
+    .activity-table th, .activity-table td { padding: 12px 14px; }
+}
+
+@media (max-width: 900px) {
+    .dashboard-page { grid-template-columns: 1fr; }
+    .dashboard-sidebar { width: 100%; min-height: auto; padding: 18px; }
+    .dashboard-sidebar { border-radius: 26px; }
+    .dashboard-header { flex-direction: column; align-items: stretch; }
+    .profile-card { width: 100%; justify-content: space-between; }
+    .dashboard-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dashboard-card { padding: 14px; }
+    .activity-card { padding: 16px; }
+    .activity-card-header { gap: 10px; }
+    .activity-card-header h2 { font-size: 1.4rem; }
+    .activity-card-header p { font-size: 0.7rem; }
+    .activity-pagination { flex-direction: column; align-items: stretch; }
+    .pagination-links { justify-content: flex-start; }
+    .activity-table th, .activity-table td { padding: 10px 12px; font-size: 0.9rem; }
+}
+
+@media (max-width: 700px) {
+    .dashboard-sidebar { padding: 16px; }
+    .brand { flex-wrap: wrap; gap: 12px; }
+    .brand h1 { font-size: 1rem; }
+    .dashboard-nav a, .sidebar-section a { font-size: 0.9rem; padding: 10px 12px; min-height: 44px; }
+    .dashboard-cards { grid-template-columns: 1fr; }
+    .dashboard-card { padding: 14px; }
+    .dashboard-header h1 { font-size: 1.6rem; }
+    .profile-card { flex-direction: row; gap: 10px; padding: 12px 14px; }
+    .profile-avatar { width: 48px; height: 48px; }
+    .activity-table { min-width: 760px; }
+    .activity-table th, .activity-table td { padding: 10px 10px; font-size: 0.85rem; }
+    .activity-card-header h2 { font-size: 1.3rem; }
+    .activity-card-header span { font-size: 0.85rem; }
+    .pagination-summary { font-size: 0.9rem; }
+    .page { min-width: 36px; height: 36px; padding: 0 10px; }
+    .activity-pagination { gap: 8px; }
+}
+
+@media (max-width: 540px) {
+    .dashboard-page { padding: 0 0 10px; }
+    .dashboard-sidebar { padding: 14px 12px; }
+    .dashboard-nav a, .sidebar-section a { gap: 8px; }
+    .dashboard-header { gap: 12px; }
+    .dashboard-header h1 { font-size: 1.4rem; }
+    .profile-card { padding: 10px 12px; gap: 10px; }
+    .profile-avatar { width: 42px; height: 42px; }
+    .dashboard-cards { gap: 10px; }
+    .dashboard-card { padding: 12px; }
+    .activity-card { padding: 14px; }
+    .activity-table { min-width: 680px; }
+    .activity-table th, .activity-table td { padding: 8px 8px; font-size: 0.82rem; }
+    .activity-card-header h2 { font-size: 1.2rem; }
+    .pagination-links { gap: 6px; }
+    .page { min-width: 34px; height: 34px; padding: 0 8px; }
 }
 
 .dashboard-sidebar {
@@ -706,21 +765,22 @@ body, html { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 }
 
 .activity-table-wrapper {
-    overflow-x: hidden;
-    padding-bottom: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
     min-width: 0;
 }
 
 .activity-table {
     width: 100%;
-    min-width: 0;
-        border-collapse: separate;
-        background: #ffffff;
-        table-layout: fixed;
-        border-spacing: 0;
-        border-radius: 22px;
-        overflow: hidden;
-    }
+    min-width: 900px;
+    border-collapse: separate;
+    background: #ffffff;
+    table-layout: fixed;
+    border-spacing: 0;
+    border-radius: 22px;
+    overflow: hidden;
+}
 
     .activity-table th,
     .activity-table td {
