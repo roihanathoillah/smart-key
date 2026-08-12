@@ -29,4 +29,49 @@ document.addEventListener('DOMContentLoaded', function(){
     const activeTab = document.querySelector('.method-tabs .tab.active');
     const methodInputOnLoad = document.getElementById('method');
     if(activeTab && methodInputOnLoad) methodInputOnLoad.value = activeTab.dataset.target || 'email';
+
+    const socialTrigger = document.getElementById('socialTrigger');
+    const socialModal = document.getElementById('socialModal');
+    const socialClose = document.getElementById('socialClose');
+    const socialOverlay = document.getElementById('socialOverlay');
+    const socialLinks = document.querySelectorAll('.social');
+
+    const openSocialModal = function() {
+        if(!socialModal) return;
+        socialModal.classList.add('active');
+        socialModal.setAttribute('aria-hidden', 'false');
+    };
+
+    const closeSocialModal = function() {
+        if(!socialModal) return;
+        socialModal.classList.remove('active');
+        socialModal.setAttribute('aria-hidden', 'true');
+    };
+
+    if(socialTrigger) {
+        socialTrigger.addEventListener('click', function() {
+            openSocialModal();
+        });
+        socialTrigger.addEventListener('keydown', function(event) {
+            if(event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openSocialModal();
+            }
+        });
+    }
+
+    socialLinks.forEach(function(link) {
+        link.addEventListener('click', function(event) {
+            event.preventDefault();
+            openSocialModal();
+        });
+    });
+
+    if(socialClose) {
+        socialClose.addEventListener('click', closeSocialModal);
+    }
+
+    if(socialOverlay) {
+        socialOverlay.addEventListener('click', closeSocialModal);
+    }
 });
