@@ -143,8 +143,8 @@
                     </div>
                     <div class="export-bottom">
                         <button type="button" class="export-button" onclick="window.location.href='{{ route('history.export') }}{{ request()->getQueryString() ? '?'.request()->getQueryString() : '' }}'">
-                            <span>Export PDF</span>
-                            <span class="export-icon">📄</span>
+                            <span>Export to Excel</span>
+                            <span class="export-icon">📊</span>
                         </button>
                     </div>
                 </div>

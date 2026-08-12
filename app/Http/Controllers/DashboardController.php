@@ -267,11 +267,54 @@ class DashboardController extends Controller
             return ! $search || str_contains(strtolower($item['id']), strtolower($search)) || str_contains(strtolower($item['name']), strtolower($search));
         })->values();
 
-        $pdf = $this->buildHistoryPdf($history);
+        $excel = $this->buildHistoryExcel($history);
 
-        return response($pdf, 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'attachment; filename="history-report.pdf"');
+        return response($excel, 200)
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+            ->header('Content-Disposition', 'attachment; filename="history-report.xls"');
+    }
+
+    private function buildHistoryExcel($history)
+    {
+        $headers = ['ID DATA', 'NAMA', 'TANGGAL', 'NAMA BOX', 'JAM CHEKIN', 'JAM CHECKOUT', 'LOKASI', 'STATUS'];
+
+        $rows = '';
+        foreach ($history as $item) {
+            $cells = [
+                $item['id'],
+                $item['name'],
+                $item['date'],
+                $item['box'],
+                $item['checkin'],
+                $item['checkout'],
+                $item['location'],
+                $item['status'],
+            ];
+
+            $escaped = array_map(function ($value) {
+                return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+            }, $cells);
+
+            $rows .= '<tr>';
+            foreach ($escaped as $index => $cell) {
+                // For date column (index 2) force text format in Excel and prevent wrapping
+                if ($index === 2) {
+                    $rows .= '<td style="padding:8px;border:1px solid #d1d5db;white-space:nowrap;mso-number-format:\'\\@\';text-align:left;">' . $cell . '</td>';
+                } else {
+                    $rows .= '<td style="padding:8px;border:1px solid #d1d5db;white-space:nowrap;">' . $cell . '</td>';
+                }
+            }
+            $rows .= '</tr>';
+        }
+
+        $headerCells = '';
+        foreach ($headers as $header) {
+            $headerCells .= '<th style="padding:12px 10px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;text-align:left;font-weight:700;">' . htmlspecialchars($header, ENT_QUOTES, 'UTF-8') . '</th>';
+        }
+
+        $html = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><style>body{font-family:Segoe UI,Calibri,Arial,sans-serif;color:#111827;}table{border-collapse:collapse;width:100%;table-layout:auto;}th,td{font-size:12px;padding:10px 10px;border:1px solid #d1d5db;vertical-align:middle;}tr:nth-child(even){background:#fbfbfb;}th{background:#f3f4f6;}</style></head><body><h1 style="font-size:20px;margin-bottom:18px;color:#111827;font-weight:700;">History Report</h1><table><thead><tr>' . $headerCells . '</tr></thead><tbody>' . $rows . '</tbody></table></body></html>';
+
+        return $html;
     }
 
     private function buildHistoryPdf($history)

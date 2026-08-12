@@ -60,11 +60,25 @@
                 <button type="submit" class="btn-primary">LOGIN</button>
             </form>
 
-            <div class="divider">Sign in With</div>
+            <div id="socialTrigger" class="divider" role="button" aria-label="Open sign in options" tabindex="0">Sign in With</div>
             <div class="socials">
                 <a class="social" href="#" aria-label="Facebook"><img src="/images/facebook-logo-facebook-social-media-icon-free-png.png" alt="Facebook"></a>
                 <a class="social" href="#" aria-label="Google"><img src="/images/icons8-google-48.png" alt="Google"></a>
                 <a class="social" href="#" aria-label="Apple"><img src="/images/icons8-apple-inc-24.png" alt="Apple"></a>
+            </div>
+
+            <div id="socialModal" class="social-modal" aria-hidden="true">
+                <div id="socialOverlay" class="social-modal__backdrop"></div>
+                <div class="social-modal__panel" role="dialog" aria-modal="true" aria-labelledby="socialModalTitle">
+                    <button type="button" id="socialClose" class="social-modal__close" aria-label="Close popup">×</button>
+                    <h2 id="socialModalTitle">Login using</h2>
+                    <p class="social-modal__text">Choose a provider to continue.</p>
+                    <div class="social-modal__buttons">
+                        <a href="#" class="social-modal__button social-modal__button--facebook">Facebook</a>
+                        <a href="#" class="social-modal__button social-modal__button--google">Google</a>
+                        <a href="#" class="social-modal__button social-modal__button--apple">Apple</a>
+                    </div>
+                </div>
             </div>
 
             <p class="signup">Dont have an account? <a href="/register">Sign up</a></p>
