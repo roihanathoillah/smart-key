@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Login;
 
 class LoginController extends Controller
 {
@@ -16,35 +15,45 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
-        $request->validate([
+        $credentials = $request->validate([
+            'email' => 'required|email',
             'password' => 'required|string',
         ]);
 
-        $method = $request->input('method', 'email');
+        $remember = $request->boolean('remember');
 
-        if ($method === 'mobile') {
-            $request->validate(['mobile' => 'required|string']);
-            $credentials = ['mobile' => $request->input('mobile'), 'password' => $request->input('password')];
-        } else {
-            $request->validate(['email' => 'required|email']);
-            $credentials = ['email' => $request->input('email'), 'password' => $request->input('password')];
-        }
-
-        if (Login::attempt($credentials, $request->boolean('remember'))) {
+        if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
 
-            $redirectRoute = $this->isSuperAdmin(Auth::user())
-                ? route('super.admin')
-                : route('dashboard');
+            $user = Auth::user();
 
-            return redirect()->intended($redirectRoute);
+            if ($user->role === 'super_admin') {
+                return redirect()->route('super.admin');
+            }
+
+            if ($user->role === 'admin') {
+                return redirect()->route('dashboard');
+            }
+
+            Auth::logout();
+
+            return back()->withErrors([
+                'email' => 'Role akun tidak valid.',
+            ])->withInput();
         }
 
-        return back()->withErrors(['password' => 'The provided credentials do not match our records.'])->withInput();
+        return back()->withErrors([
+            'email' => 'Email atau password salah.',
+        ])->withInput();
     }
 
-    protected function isSuperAdmin($user): bool
+    public function logout(Request $request)
     {
-        return $user && $user->email === 'admin@smartkey.com';
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
     }
 }
