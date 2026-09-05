@@ -21,6 +21,26 @@
             box-shadow: inset 3px 0 0 #2563eb;
         }
 
+        .employee-status {
+            display: inline-block;
+            min-width: 86px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.4;
+            color: #ffffff;
+        }
+
+        .employee-status.aktif {
+            background: #16a34a;
+        }
+
+        .employee-status.nonaktif {
+            background: #dc2626;
+        }
+
         .edit-info {
             display: none;
             margin-top: 8px;
@@ -363,14 +383,6 @@
                                 class="{{ request()->routeIs('profile') ? 'active' : '' }}"
                             >
                                 Profile
-                            </a>
-
-                            <a href="#">
-                                Notification
-                            </a>
-
-                            <a href="#">
-                                Security
                             </a>
 
                         </div>

@@ -87,14 +87,6 @@
                                 Profile
                             </a>
 
-                            <a href="#">
-                                Notification
-                            </a>
-
-                            <a href="#">
-                                Security
-                            </a>
-
                         </div>
 
                     </details>

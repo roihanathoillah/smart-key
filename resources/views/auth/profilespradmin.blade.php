@@ -33,8 +33,6 @@
                         <summary>Setting</summary>
                         <div class="sidebar-dropdown-menu">
                             <a href="{{ route('profile.super') }}" class="{{ request()->routeIs('profile.super') ? 'active' : '' }}">Profile</a>
-                            <a href="#">Notification</a>
-                            <a href="#">Security</a>
                         </div>
                     </details>
                 </nav>
