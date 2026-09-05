@@ -15,40 +15,271 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        /*
+        |--------------------------------------------------------------------------
+        | STATISTIK DASHBOARD ADMIN
+        |--------------------------------------------------------------------------
+        */
+
+        $aksesHariIni = DB::table('checkin_checkouts')
+            ->whereDate('tanggal', now()->format('Y-m-d'))
+            ->count();
+
+        $aksesBerhasil = DB::table('checkin_checkouts')
+            ->where('akses_hasil', 'berhasil')
+            ->count();
+
+        $aksesDitolak = DB::table('checkin_checkouts')
+            ->where('akses_hasil', 'ditolak')
+            ->count();
+
         $stats = [
-            ['label' => 'Total Smart Box', 'value' => '128', 'meta' => '8.5% Up from yesterday', 'icon' => '📦', 'accent' => '#2563eb'],
-            ['label' => 'Akses Hari ini', 'value' => '256', 'meta' => '8.5% Up from yesterday', 'icon' => '⚡', 'accent' => '#f59e0b'],
-            ['label' => 'Akses Berhasil', 'value' => '232', 'meta' => '1.8% Up from yesterday', 'icon' => '✅', 'accent' => '#10b981'],
-            ['label' => 'Akses Ditolak', 'value' => '24', 'meta' => '4.3% Down from yesterday', 'icon' => '❌', 'accent' => '#ef4444'],
+            [
+                'label' => 'Akses Hari ini',
+                'value' => (string) $aksesHariIni,
+                'meta' => 'Aktivitas hari ini',
+                'icon' => '⚡',
+                'accent' => '#f59e0b'
+            ],
+            [
+                'label' => 'Akses Berhasil',
+                'value' => (string) $aksesBerhasil,
+                'meta' => 'Total akses berhasil',
+                'icon' => '✅',
+                'accent' => '#10b981'
+            ],
+            [
+                'label' => 'Akses Ditolak',
+                'value' => (string) $aksesDitolak,
+                'meta' => 'Total akses ditolak',
+                'icon' => '❌',
+                'accent' => '#ef4444'
+            ],
         ];
 
-        $rawActivities = collect(range(1, 20))->map(function ($index) {
-            return [
-                'id' => '#6548',
-                'name' => 'Roi Kiyosi',
-                'date' => '22/08/2026',
-                'box' => 'BoX-miq-01',
-                'checkin' => 'BoX-miq-01',
-                'checkout' => 'BoX-miq-01',
-                'location' => 'Malang',
-                'status' => 'Chekin',
-            ];
-        });
+        /*
+        |--------------------------------------------------------------------------
+        | TABEL AKTIVITAS
+        |--------------------------------------------------------------------------
+        */
+
+        $rawActivities = DB::table('checkin_checkouts')
+            ->leftJoin(
+                'karyawans',
+                'checkin_checkouts.karyawan_id',
+                '=',
+                'karyawans.id'
+            )
+            ->leftJoin(
+                'smart_boxes',
+                'checkin_checkouts.smart_box_id',
+                '=',
+                'smart_boxes.id'
+            )
+            ->leftJoin(
+                'districts',
+                'checkin_checkouts.district_id',
+                '=',
+                'districts.id'
+            )
+            ->leftJoin(
+                'ods',
+                'checkin_checkouts.ods_id',
+                '=',
+                'ods.id'
+            )
+            ->select(
+                'checkin_checkouts.id',
+                'checkin_checkouts.kode_data',
+                'checkin_checkouts.tanggal',
+                'checkin_checkouts.jam_checkin',
+                'checkin_checkouts.jam_checkout',
+                'checkin_checkouts.lokasi',
+                'checkin_checkouts.status',
+                'karyawans.nama_lengkap',
+                'smart_boxes.kode_box',
+                'districts.nama_district',
+                'ods.kode_ods',
+                'ods.nama_ods'
+            )
+            ->orderByDesc('checkin_checkouts.id')
+            ->limit(50)
+            ->get()
+            ->map(function ($item) {
+
+                $tanggal = '-';
+
+                if (!empty($item->tanggal)) {
+
+                    $timestamp = strtotime($item->tanggal);
+
+                    if ($timestamp !== false) {
+                        $tanggal = date('d/m/Y', $timestamp);
+                    }
+                }
+
+                $status = strtolower((string) ($item->status ?? ''));
+
+                if ($status === 'chekin' || $status === 'checkin') {
+
+                    $statusLabel = 'Chekin';
+
+                } elseif ($status === 'checkout') {
+
+                    $statusLabel = 'Checkout';
+
+                } else {
+
+                    $statusLabel = $item->status
+                        ? ucfirst($item->status)
+                        : '-';
+                }
+
+                $odsLabel = '-';
+
+                if (!empty($item->kode_ods) && !empty($item->nama_ods)) {
+
+                    $odsLabel =
+                        $item->kode_ods . ' - ' . $item->nama_ods;
+
+                } elseif (!empty($item->kode_ods)) {
+
+                    $odsLabel = $item->kode_ods;
+
+                } elseif (!empty($item->nama_ods)) {
+
+                    $odsLabel = $item->nama_ods;
+                }
+
+                return [
+                    'id' => $item->kode_data ?? ('#' . $item->id),
+                    'name' => $item->nama_lengkap ?? '-',
+                    'date' => $tanggal,
+                    'box' => $item->kode_box ?? '-',
+                    'checkin' => $item->jam_checkin ?? '-',
+                    'checkout' => $item->jam_checkout ?? '-',
+                    'location' => $item->lokasi ?? '-',
+                    'district' => $item->nama_district ?? ($item->lokasi ?? '-'),
+                    'ods' => $odsLabel,
+                    'status' => $statusLabel,
+                ];
+            });
 
         $perPage = 4;
-        $page = $request->query('page', 1);
-        $currentItems = $rawActivities->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $page = (int) $request->query('page', 1);
+
+        if ($page < 1) {
+            $page = 1;
+        }
+
+        $currentItems = $rawActivities
+            ->slice(
+                ($page - 1) * $perPage,
+                $perPage
+            )
+            ->values();
 
         $activities = new LengthAwarePaginator(
             $currentItems,
             $rawActivities->count(),
             $perPage,
             $page,
-            ['path' => $request->url(), 'query' => $request->query()]
+            [
+                'path' => $request->url(),
+                'query' => $request->query()
+            ]
         );
 
-        return view('dashboard', compact('stats', 'activities'));
+        /*
+        |--------------------------------------------------------------------------
+        | GRAFIK AKTIVITAS PER JAM
+        |--------------------------------------------------------------------------
+        |
+        | Sesuai flowchart:
+        | 00:00 | 04:00 | 08:00 | 12:00 | 16:00 | 20:00 | 24:00
+        |
+        | Grafik menggunakan aktivitas pada tanggal terakhir yang tersedia
+        | di database agar tetap tampil meskipun hari ini belum ada transaksi.
+        |
+        */
+
+        $chartDate = DB::table('checkin_checkouts')
+            ->whereNotNull('tanggal')
+            ->max('tanggal');
+
+        $activityChartLabels = [
+            '00:00',
+            '04:00',
+            '08:00',
+            '12:00',
+            '16:00',
+            '20:00',
+            '24:00',
+        ];
+
+        $activityCheckinData = array_fill(0, 7, 0);
+        $activityCheckoutData = array_fill(0, 7, 0);
+
+        if ($chartDate) {
+
+            $chartActivities = DB::table('checkin_checkouts')
+                ->whereDate('tanggal', $chartDate)
+                ->select(
+                    'jam_checkin',
+                    'jam_checkout'
+                )
+                ->get();
+
+            foreach ($chartActivities as $activity) {
+
+                if (!empty($activity->jam_checkin)) {
+
+                    $hour = (int) date(
+                        'H',
+                        strtotime($activity->jam_checkin)
+                    );
+
+                    $index = min(
+                        6,
+                        (int) floor($hour / 4)
+                    );
+
+                    $activityCheckinData[$index]++;
+                }
+
+                if (!empty($activity->jam_checkout)) {
+
+                    $hour = (int) date(
+                        'H',
+                        strtotime($activity->jam_checkout)
+                    );
+
+                    $index = min(
+                        6,
+                        (int) floor($hour / 4)
+                    );
+
+                    $activityCheckoutData[$index]++;
+                }
+            }
+        }
+
+        return view(
+            'dashboard',
+            compact(
+                'stats',
+                'activities',
+                'aksesHariIni',
+                'aksesBerhasil',
+                'aksesDitolak',
+                'activityChartLabels',
+                'activityCheckinData',
+                'activityCheckoutData'
+            )
+        );
     }
+
 
     public function superAdmin(Request $request)
     {
@@ -716,8 +947,22 @@ class DashboardController extends Controller
                 'districts.nama_district',
                 'ods.kode_ods',
                 'ods.nama_ods',
-                'layanan_pekerjaans.jenis_layanan',
-                'layanan_pekerjaans.deskripsi_pekerjaan'
+                // aggregate layanan rows into a single concatenated string
+                DB::raw("GROUP_CONCAT(CONCAT_WS('::', layanan_pekerjaans.jenis_layanan, layanan_pekerjaans.deskripsi_pekerjaan) SEPARATOR '|||') as layanan_all")
+            )
+            ->groupBy(
+                'checkin_checkouts.id',
+                'checkin_checkouts.kode_data',
+                'checkin_checkouts.tanggal',
+                'checkin_checkouts.jam_checkin',
+                'checkin_checkouts.jam_checkout',
+                'checkin_checkouts.lokasi',
+                'checkin_checkouts.status',
+                'karyawans.nama_lengkap',
+                'smart_boxes.kode_box',
+                'districts.nama_district',
+                'ods.kode_ods',
+                'ods.nama_ods'
             );
 
         /*
@@ -883,8 +1128,59 @@ class DashboardController extends Controller
                 'ods' => $odsLabel,
                 'location' => $item->lokasi ?? '-',
                 'status' => $statusLabel,
-                'service' => $item->jenis_layanan ?? '-',
-                'description' => $item->deskripsi_pekerjaan ?? '-',
+
+                /*
+                |--------------------------------------------------------------------------
+                | SEMUA LAYANAN UNTUK EXCEL
+                |--------------------------------------------------------------------------
+                |
+                | Query menggunakan GROUP_CONCAT menjadi layanan_all.
+                | Pecah kembali agar seluruh jenis layanan dan deskripsinya
+                | tampil di satu baris Excel untuk satu data checkin.
+                |
+                */
+
+                'service' => $this->formatAllServicesForExcel(
+                    $item->layanan_all ?? null,
+                    'service'
+                ),
+
+                'description' => $this->formatAllServicesForExcel(
+                    $item->layanan_all ?? null,
+                    'description'
+                ),
+
+                /*
+                |--------------------------------------------------------------------------
+                | DESKRIPSI PER JENIS LAYANAN
+                |--------------------------------------------------------------------------
+                |
+                | Digunakan oleh Excel untuk membuat header:
+                |
+                | DESKRIPSI PEKERJAAN
+                | Survey | Deployment | Assurance | Maintenance
+                |
+                */
+
+                'survey_description' => $this->getServiceDescriptionForExcel(
+                    $item->layanan_all ?? null,
+                    'Survey'
+                ),
+
+                'deployment_description' => $this->getServiceDescriptionForExcel(
+                    $item->layanan_all ?? null,
+                    'Deployment'
+                ),
+
+                'assurance_description' => $this->getServiceDescriptionForExcel(
+                    $item->layanan_all ?? null,
+                    'Assurance'
+                ),
+
+                'maintenance_description' => $this->getServiceDescriptionForExcel(
+                    $item->layanan_all ?? null,
+                    'Maintenance'
+                ),
             ];
         });
 
@@ -901,28 +1197,109 @@ class DashboardController extends Controller
             );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | FORMAT SEMUA LAYANAN UNTUK EXCEL
+    |--------------------------------------------------------------------------
+    */
+
+    private function formatAllServicesForExcel($layananAll, $type)
+    {
+        if (empty($layananAll)) {
+            return '-';
+        }
+
+        $items = explode('|||', $layananAll);
+
+        $services = [];
+        $descriptions = [];
+
+        foreach ($items as $item) {
+
+            $parts = explode('::', $item, 2);
+
+            $service =
+                trim((string) ($parts[0] ?? ''));
+
+            $description =
+                trim((string) ($parts[1] ?? ''));
+
+            if ($service === '') {
+                continue;
+            }
+
+            $services[] = $service;
+
+            $descriptions[] =
+                $service . ': ' .
+                ($description !== '' ? $description : '-');
+        }
+
+        if ($type === 'service') {
+            return !empty($services)
+                ? implode(', ', $services)
+                : '-';
+        }
+
+        return !empty($descriptions)
+            ? implode("\n", $descriptions)
+            : '-';
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | AMBIL DESKRIPSI PER JENIS LAYANAN UNTUK EXCEL
+    |--------------------------------------------------------------------------
+    */
+
+    private function getServiceDescriptionForExcel($layananAll, $targetService)
+    {
+        if (empty($layananAll)) {
+            return '-';
+        }
+
+        $items = explode('|||', $layananAll);
+
+        foreach ($items as $item) {
+
+            $parts = explode('::', $item, 2);
+
+            $service =
+                trim((string) ($parts[0] ?? ''));
+
+            $description =
+                trim((string) ($parts[1] ?? ''));
+
+            if (
+                strcasecmp(
+                    $service,
+                    $targetService
+                ) === 0
+            ) {
+                return $description !== ''
+                    ? $description
+                    : '-';
+            }
+        }
+
+        return '-';
+    }
+
+
     private function buildHistoryExcel($history)
     {
-        $headers = [
-            'ID DATA',
-            'NAMA',
-            'TANGGAL',
-            'NAMA BOX',
-            'JAM CHEKIN',
-            'JAM CHECKOUT',
-            'DISTRIK',
-            'ODS',
-            'LOKASI',
-            'STATUS',
-            'JENIS LAYANAN',
-            'DESKRIPSI PEKERJAAN'
-        ];
+        /*
+        |--------------------------------------------------------------------------
+        | BARIS DATA
+        |--------------------------------------------------------------------------
+        */
 
         $rows = '';
 
         foreach ($history as $item) {
 
-            $cells = [
+            $normalCells = [
                 $item['id'],
                 $item['name'],
                 $item['date'],
@@ -933,72 +1310,267 @@ class DashboardController extends Controller
                 $item['ods'],
                 $item['location'],
                 $item['status'],
-                $item['service'],
-                $item['description'],
             ];
 
-            $escaped = array_map(function ($value) {
-                return htmlspecialchars(
+            $descriptionCells = [
+                $item['survey_description'] ?? '-',
+                $item['deployment_description'] ?? '-',
+                $item['assurance_description'] ?? '-',
+                $item['maintenance_description'] ?? '-',
+            ];
+
+
+            $rows .= '<tr>';
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | KOLOM DATA UTAMA
+            |--------------------------------------------------------------------------
+            */
+
+            foreach ($normalCells as $index => $value) {
+
+                $cell = htmlspecialchars(
                     (string) $value,
                     ENT_QUOTES,
                     'UTF-8'
                 );
-            }, $cells);
-
-            $rows .= '<tr>';
-
-            foreach ($escaped as $index => $cell) {
 
                 if ($index === 2) {
 
-                    $rows .= '<td style="padding:8px;border:1px solid #d1d5db;white-space:nowrap;mso-number-format:\'\@\';text-align:left;">'
-                        . $cell .
-                        '</td>';
-
-                } elseif ($index === 11) {
-
-                    $rows .= '<td style="padding:8px;border:1px solid #d1d5db;white-space:normal;min-width:280px;">'
-                        . $cell .
+                    $rows .=
+                        '<td style="' .
+                            'padding:8px;' .
+                            'border:1px solid #d1d5db;' .
+                            'white-space:nowrap;' .
+                            'mso-number-format:\'\@\';' .
+                            'text-align:left;' .
+                            'vertical-align:top;' .
+                        '">' .
+                            $cell .
                         '</td>';
 
                 } else {
 
-                    $rows .= '<td style="padding:8px;border:1px solid #d1d5db;white-space:nowrap;">'
-                        . $cell .
+                    $rows .=
+                        '<td style="' .
+                            'padding:8px;' .
+                            'border:1px solid #d1d5db;' .
+                            'white-space:nowrap;' .
+                            'vertical-align:top;' .
+                        '">' .
+                            $cell .
                         '</td>';
                 }
             }
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | 4 KOLOM DESKRIPSI PEKERJAAN
+            |--------------------------------------------------------------------------
+            */
+
+            foreach ($descriptionCells as $value) {
+
+                $cell = htmlspecialchars(
+                    (string) $value,
+                    ENT_QUOTES,
+                    'UTF-8'
+                );
+
+                $rows .=
+                    '<td style="' .
+                        'padding:8px;' .
+                        'border:1px solid #d1d5db;' .
+                        'white-space:normal;' .
+                        'min-width:220px;' .
+                        'vertical-align:top;' .
+                    '">' .
+                        nl2br($cell) .
+                    '</td>';
+            }
+
+
             $rows .= '</tr>';
         }
 
-        $headerCells = '';
 
-        foreach ($headers as $header) {
+        /*
+        |--------------------------------------------------------------------------
+        | HEADER 2 TINGKAT
+        |--------------------------------------------------------------------------
+        |
+        | Baris 1:
+        | ID DATA ... STATUS | DESKRIPSI PEKERJAAN
+        |
+        | Baris 2:
+        |                    | SURVEY | DEPLOYMENT | ASSURANCE | MAINTENANCE
+        |
+        */
 
-            $headerCells .= '<th style="padding:12px 10px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;text-align:left;font-weight:700;white-space:nowrap;">'
-                . htmlspecialchars($header, ENT_QUOTES, 'UTF-8')
-                . '</th>';
+        $mainHeaders = [
+            'ID DATA',
+            'NAMA',
+            'TANGGAL',
+            'NAMA BOX',
+            'JAM CHEKIN',
+            'JAM CHECKOUT',
+            'DISTRIK',
+            'ODS',
+            'LOKASI',
+            'STATUS',
+        ];
+
+        $mainHeaderCells = '';
+
+        foreach ($mainHeaders as $header) {
+
+            $mainHeaderCells .=
+                '<th rowspan="2" style="' .
+                    'padding:12px 10px;' .
+                    'border:1px solid #d1d5db;' .
+                    'background:#f3f4f6;' .
+                    'color:#111827;' .
+                    'text-align:center;' .
+                    'vertical-align:middle;' .
+                    'font-weight:700;' .
+                    'white-space:nowrap;' .
+                '">' .
+                    htmlspecialchars(
+                        $header,
+                        ENT_QUOTES,
+                        'UTF-8'
+                    ) .
+                '</th>';
         }
 
+
+        $descriptionParentHeader =
+            '<th colspan="4" style="' .
+                'padding:12px 10px;' .
+                'border:1px solid #d1d5db;' .
+                'background:#f3f4f6;' .
+                'color:#111827;' .
+                'text-align:center;' .
+                'vertical-align:middle;' .
+                'font-weight:700;' .
+                'white-space:nowrap;' .
+            '">' .
+                'DESKRIPSI PEKERJAAN' .
+            '</th>';
+
+
+        $descriptionSubHeaders = [
+            'SURVEY',
+            'DEPLOYMENT',
+            'ASSURANCE',
+            'MAINTENANCE',
+        ];
+
+        $descriptionSubHeaderCells = '';
+
+        foreach ($descriptionSubHeaders as $header) {
+
+            $descriptionSubHeaderCells .=
+                '<th style="' .
+                    'padding:10px;' .
+                    'border:1px solid #d1d5db;' .
+                    'background:#f8fafc;' .
+                    'color:#111827;' .
+                    'text-align:center;' .
+                    'vertical-align:middle;' .
+                    'font-weight:700;' .
+                    'white-space:nowrap;' .
+                    'min-width:220px;' .
+                '">' .
+                    htmlspecialchars(
+                        $header,
+                        ENT_QUOTES,
+                        'UTF-8'
+                    ) .
+                '</th>';
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HTML EXCEL
+        |--------------------------------------------------------------------------
+        */
+
         $html =
-            '<html><head>' .
+            '<html>' .
+
+            '<head>' .
+
             '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />' .
+
             '<style>' .
-            'body{font-family:Segoe UI,Calibri,Arial,sans-serif;color:#111827;}' .
-            'table{border-collapse:collapse;width:100%;table-layout:auto;}' .
-            'th,td{font-size:12px;padding:10px 10px;border:1px solid #d1d5db;vertical-align:middle;}' .
-            'tr:nth-child(even){background:#fbfbfb;}' .
-            'th{background:#f3f4f6;}' .
+
+            'body{' .
+                'font-family:Segoe UI,Calibri,Arial,sans-serif;' .
+                'color:#111827;' .
+            '}' .
+
+            'table{' .
+                'border-collapse:collapse;' .
+                'width:100%;' .
+                'table-layout:auto;' .
+            '}' .
+
+            'th,td{' .
+                'font-size:12px;' .
+                'padding:10px 10px;' .
+                'border:1px solid #d1d5db;' .
+                'vertical-align:middle;' .
+            '}' .
+
+            'tr:nth-child(even){' .
+                'background:#fbfbfb;' .
+            '}' .
+
             '</style>' .
-            '</head><body>' .
-            '<h1 style="font-size:20px;margin-bottom:18px;color:#111827;font-weight:700;">History Report</h1>' .
-            '<table><thead><tr>' .
-            $headerCells .
-            '</tr></thead><tbody>' .
-            $rows .
-            '</tbody></table>' .
-            '</body></html>';
+
+            '</head>' .
+
+            '<body>' .
+
+            '<h1 style="' .
+                'font-size:20px;' .
+                'margin-bottom:18px;' .
+                'color:#111827;' .
+                'font-weight:700;' .
+            '">' .
+                'History Report' .
+            '</h1>' .
+
+            '<table>' .
+
+            '<thead>' .
+
+            '<tr>' .
+                $mainHeaderCells .
+                $descriptionParentHeader .
+            '</tr>' .
+
+            '<tr>' .
+                $descriptionSubHeaderCells .
+            '</tr>' .
+
+            '</thead>' .
+
+            '<tbody>' .
+                $rows .
+            '</tbody>' .
+
+            '</table>' .
+
+            '</body>' .
+
+            '</html>';
+
 
         return $html;
     }
@@ -1480,31 +2052,51 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         | VALIDASI DATA
         |--------------------------------------------------------------------------
+        |
+        | checkin.blade.php mengirim semua layanan yang terisi dalam bentuk:
+        | jenis_layanan[] dan deskripsi_pekerjaan[].
+        |
         */
 
-        $request->validate([
+        $validated = $request->validate([
             'karyawan_id' => 'required|integer|exists:karyawans,id',
             'box_id' => 'required|integer|exists:smart_boxes,id',
             'district' => 'required|string|max:100',
 
-            /*
-            | Jenis layanan harus sama persis dengan ENUM database.
-            */
-            'jenis_layanan' => [
+            'jenis_layanan' => 'required|array|min:1',
+            'jenis_layanan.*' => [
                 'required',
                 'string',
                 'in:Survey,Deployment,Assurance,Maintenance',
             ],
 
-            /*
-            | Deskripsi pekerjaan.
-            */
-            'deskripsi_pekerjaan' => [
+            'deskripsi_pekerjaan' => 'required|array|min:1',
+            'deskripsi_pekerjaan.*' => [
                 'required',
                 'string',
                 'max:5000',
             ],
         ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | PASTIKAN JUMLAH JENIS LAYANAN DAN DESKRIPSI SAMA
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            count($validated['jenis_layanan']) !==
+            count($validated['deskripsi_pekerjaan'])
+        ) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Data jenis layanan dan deskripsi pekerjaan tidak sesuai.'
+                );
+        }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -1513,12 +2105,11 @@ class DashboardController extends Controller
         */
 
         $karyawan = Karyawan::query()
-            ->where('id', $request->karyawan_id)
+            ->where('id', $validated['karyawan_id'])
             ->where('status', 'aktif')
             ->first();
 
         if (!$karyawan) {
-
             return back()
                 ->withInput()
                 ->with(
@@ -1527,6 +2118,7 @@ class DashboardController extends Controller
                 );
         }
 
+
         /*
         |--------------------------------------------------------------------------
         | CEK SMART BOX
@@ -1534,12 +2126,11 @@ class DashboardController extends Controller
         */
 
         $smartBox = DB::table('smart_boxes')
-            ->where('id', $request->box_id)
+            ->where('id', $validated['box_id'])
             ->where('status', 'aktif')
             ->first();
 
         if (!$smartBox) {
-
             return back()
                 ->withInput()
                 ->with(
@@ -1548,9 +2139,10 @@ class DashboardController extends Controller
                 );
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | SIMPAN CHECKIN + LAYANAN DALAM SATU TRANSAKSI
+        | SIMPAN CHECKIN + SEMUA LAYANAN DALAM SATU TRANSAKSI
         |--------------------------------------------------------------------------
         */
 
@@ -1558,14 +2150,11 @@ class DashboardController extends Controller
 
             DB::beginTransaction();
 
+
             /*
             |--------------------------------------------------------------------------
             | BUAT KODE DATA
             |--------------------------------------------------------------------------
-            |
-            | Contoh:
-            | #6548
-            |
             */
 
             do {
@@ -1583,6 +2172,7 @@ class DashboardController extends Controller
 
             } while ($kodeExists);
 
+
             /*
             |--------------------------------------------------------------------------
             | WAKTU CHECKIN
@@ -1591,15 +2181,11 @@ class DashboardController extends Controller
 
             $now = now();
 
+
             /*
             |--------------------------------------------------------------------------
             | SIMPAN DATA CHECKIN
             |--------------------------------------------------------------------------
-            |
-            | PENTING:
-            | Database kamu menggunakan "chekin", bukan "checkin".
-            | Jadi nilai ini harus sama persis dengan ENUM database.
-            |
             */
 
             $checkinId = DB::table('checkin_checkouts')->insertGetId([
@@ -1624,10 +2210,14 @@ class DashboardController extends Controller
 
                 'id_card_terbaca' => 1,
 
-                'lokasi' => $request->district,
+                /*
+                | District yang diketik manual pada halaman Checkin
+                | tetap disimpan pada kolom lokasi.
+                */
+                'lokasi' => $validated['district'],
 
                 /*
-                | Sesuai dengan ENUM yang saat ini ada di database.
+                | Sesuai ENUM database yang digunakan project saat ini.
                 */
                 'status' => 'chekin',
 
@@ -1644,29 +2234,43 @@ class DashboardController extends Controller
                 'updated_at' => $now,
             ]);
 
+
             /*
             |--------------------------------------------------------------------------
-            | SIMPAN LAYANAN / PEKERJAAN
+            | SIMPAN SEMUA LAYANAN / PEKERJAAN
             |--------------------------------------------------------------------------
             |
-            | Menggunakan DB::table secara langsung agar tidak tergantung
-            | pada $fillable di model LayananPekerjaan.
+            | Satu checkin dapat memiliki beberapa baris layanan_pekerjaans.
+            | Contoh jika empat deskripsi diisi:
+            |
+            | Survey      -> deskripsi Survey
+            | Deployment  -> deskripsi Deployment
+            | Assurance   -> deskripsi Assurance
+            | Maintenance -> deskripsi Maintenance
             |
             */
 
-            DB::table('layanan_pekerjaans')->insert([
+            $serviceRows = [];
 
-                'checkin_checkout_id' => $checkinId,
+            foreach ($validated['jenis_layanan'] as $index => $jenisLayanan) {
 
-                'jenis_layanan' => $request->jenis_layanan,
+                $deskripsi =
+                    trim(
+                        (string) $validated['deskripsi_pekerjaan'][$index]
+                    );
 
-                'deskripsi_pekerjaan' => $request->deskripsi_pekerjaan,
+                $serviceRows[] = [
+                    'checkin_checkout_id' => $checkinId,
+                    'jenis_layanan' => $jenisLayanan,
+                    'deskripsi_pekerjaan' => $deskripsi,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
 
-                'created_at' => $now,
+            DB::table('layanan_pekerjaans')
+                ->insert($serviceRows);
 
-                'updated_at' => $now,
-
-            ]);
 
             /*
             |--------------------------------------------------------------------------
@@ -1678,27 +2282,19 @@ class DashboardController extends Controller
 
         } catch (\Throwable $e) {
 
-            /*
-            |--------------------------------------------------------------------------
-            | BATALKAN TRANSAKSI JIKA ERROR
-            |--------------------------------------------------------------------------
-            */
-
             DB::rollBack();
 
-            /*
-            | Simpan error ke Laravel log supaya bisa dicek jika masih ada
-            | masalah.
-            */
             report($e);
 
             return back()
                 ->withInput()
                 ->with(
                     'error',
-                    'Data Checkin dan layanan pekerjaan gagal disimpan: ' . $e->getMessage()
+                    'Data Checkin dan layanan pekerjaan gagal disimpan: ' .
+                    $e->getMessage()
                 );
         }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -1710,11 +2306,11 @@ class DashboardController extends Controller
             ->route('checkin', [
                 'q' => $karyawan->id_card,
                 'box_id' => $smartBox->id,
-                'district' => $smartBox->lokasi,
+                'district' => $validated['district'],
             ])
             ->with(
                 'success',
-                'Checkin dan layanan pekerjaan berhasil disimpan.'
+                'Checkin dan semua layanan pekerjaan berhasil disimpan.'
             );
     }
 

@@ -27,15 +27,47 @@ class LoginController extends Controller
 
             $user = Auth::user();
 
+            // =========================
+            // SUPER ADMIN LAMA
+            // =========================
+            // Tetap dipertahankan agar sistem lama tidak rusak.
             if ($user->role === 'super_admin') {
                 return redirect()->route('super.admin');
             }
 
+            // =========================
+            // ADMIN
+            // =========================
             if ($user->role === 'admin') {
                 return redirect()->route('dashboard');
             }
 
+            // =========================
+            // ROLE SESUAI FLOWCHART
+            // =========================
+            if (in_array($user->role, [
+                'officer_1_assurance',
+                'hsa',
+                'officer_3',
+                'korlap',
+                'korlap_b2b',
+                'teknisi_b2b',
+            ])) {
+                /*
+                 * Untuk sementara seluruh role flowchart
+                 * diarahkan ke Dashboard.
+                 *
+                 * Hak akses masing-masing role akan
+                 * dibedakan pada tahap middleware dan routes.
+                 */
+                return redirect()->route('dashboard');
+            }
+
+            // Jika role tidak dikenal, logout demi keamanan.
             Auth::logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
             return back()->withErrors([
                 'email' => 'Role akun tidak valid.',

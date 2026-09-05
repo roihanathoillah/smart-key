@@ -32,14 +32,14 @@
 
         /* Status Disetujui */
         .employee-status.aktif {
-            background: #bfeee3;
-            color: #009f82;
+            background: #16a34a;
+            color: #ffffff;
         }
 
         /* Status Ditolak */
         .employee-status.nonaktif {
-            background: #ffd2d5;
-            color: #e40000;
+            background: #dc2626;
+            color: #ffffff;
         }
 
         /* ==============================
@@ -67,26 +67,26 @@
 
         /* Tombol Di Setujui */
         .status-approve {
-            background: #bfeee3;
-            color: #009f82;
+            background: #16a34a;
+            color: #ffffff;
         }
 
         .status-approve:hover {
-            background: #a8e6d8;
+            background: #15803d;
             transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(0, 159, 130, 0.15);
+            box-shadow: 0 4px 10px rgba(22, 163, 74, 0.2);
         }
 
         /* Tombol Tolak */
         .status-reject {
-            background: #ffd2d5;
-            color: #e40000;
+            background: #dc2626;
+            color: #ffffff;
         }
 
         .status-reject:hover {
-            background: #ffc0c4;
+            background: #b91c1c;
             transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(228, 0, 0, 0.12);
+            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.22);
         }
 
         .status-action:active {
@@ -365,7 +365,7 @@
                                              TOMBOL DI SETUJUI
                                              ================================= --}}
 
-                                        @if ($employee['status'] !== 'aktif')
+                                        @if ($employee['status'] !== 'aktif' && $employee['status'] !== 'nonaktif')
 
                                             <form
                                                 method="POST"
@@ -390,7 +390,7 @@
                                              TOMBOL TOLAK
                                              ================================= --}}
 
-                                        @if ($employee['status'] !== 'nonaktif')
+                                        @if ($employee['status'] !== 'aktif' && $employee['status'] !== 'nonaktif')
 
                                             <form
                                                 method="POST"

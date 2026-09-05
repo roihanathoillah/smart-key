@@ -17,15 +17,17 @@ class RegisterController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:50',
+            'name' => 'required|string|max:50|unique:users,username',
             'email' => 'required|email|max:150|unique:users,email',
-            'password' => 'required|string|min:6',
+            'nomor_hp' => 'required|string|max:20',
+            'password' => 'required|string|min:6|confirmed',
         ]);
 
         $user = User::create([
             'username' => $request->input('name'),
             'nama_lengkap' => $request->input('name'),
             'email' => $request->input('email'),
+            'nomor_hp' => $request->input('nomor_hp'),
             'password' => $request->input('password'),
             'role' => 'admin',
         ]);

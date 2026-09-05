@@ -16,7 +16,7 @@
 
         .smartbox-panel {
             margin-top: 20px;
-            padding: 24px;
+            padding: 18px 20px;
             background: #ffffff;
             border-radius: 16px;
             border: 1px solid #e5e7eb;
@@ -58,6 +58,18 @@
             font-size: 15px;
             outline: none;
             cursor: pointer;
+        }
+
+        .smartbox-field input {
+            width: 100%;
+            min-height: 48px;
+            padding: 0 14px;
+            border: 1px solid #d9dee7;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #1f2937;
+            font-size: 15px;
+            outline: none;
         }
 
         .smartbox-field select:focus {
@@ -215,27 +227,13 @@
             color: #1f2937;
             font-size: 14px;
             font-weight: 700;
-            cursor: pointer;
+            cursor: default;
             box-sizing: border-box;
-            transition: all 0.2s ease;
         }
 
         .service-option:hover {
-            border-color: #2563eb;
-            background: #f8fbff;
-        }
-
-        .service-option.active {
-            border-color: #2563eb;
-            background: #eff6ff;
-            color: #1d4ed8;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
-        }
-
-        .service-option input[type="radio"] {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
+            border-color: #d9dee7;
+            background: #ffffff;
         }
 
         .service-field {
@@ -292,24 +290,118 @@
         }
 
 
+
         /* =========================================================
-           SERVICE SELECTED INDICATOR
+           PENYESUAIAN CHECKIN/CHECKOUT SESUAI FLOWCHART
            ========================================================= */
 
-        .service-selected-indicator {
-            display: none;
-            margin-left: auto;
-            padding: 4px 9px;
-            border-radius: 20px;
-            background: #2563eb;
-            color: #ffffff;
-            font-size: 11px;
-            font-weight: 700;
+        .checkin-card {
+            background: transparent;
+            box-shadow: none;
+            border: 0;
+            padding: 0;
         }
 
-        .service-option.active .service-selected-indicator {
-            display: inline-flex;
+        .checkin-top {
+            background: #ffffff;
+            border: 1px solid #d9dee7;
+            border-radius: 16px;
+            padding: 22px;
+            box-sizing: border-box;
+        }
+
+        .checkin-info h3 {
+            margin: 0 0 18px 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .service-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            padding: 20px;
+            background: #ffffff;
+            border: 1px solid #d9dee7;
+            border-radius: 16px;
+        }
+
+        .service-card {
+            border-radius: 12px;
+            box-shadow: none;
+        }
+
+        .service-card h4 {
+            display: none;
+        }
+
+        .service-option {
+            margin-bottom: 10px;
+            background: #f8fafc;
+            cursor: default;
+        }
+
+        .service-field textarea {
+            min-height: 90px;
+        }
+
+        .checkin-actions {
+            display: flex;
             align-items: center;
+            justify-content: center;
+            gap: 18px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        #edit-service-button {
+            display: none;
+        }
+
+        #submit-checkin-button,
+        #checkout-form button[type="submit"] {
+            min-width: 210px;
+            min-height: 48px;
+            border: none;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: none;
+        }
+
+        #submit-checkin-button {
+            background: #2563eb;
+        }
+
+        #submit-checkin-button:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        #checkout-form button[type="submit"] {
+            background: #16a34a;
+        }
+
+        #checkout-form button[type="submit"]:hover:not(:disabled) {
+            background: #15803d;
+        }
+
+        #submit-checkin-button:disabled,
+        #checkout-form button[type="submit"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .service-grid {
+                grid-template-columns: 1fr;
+            }
+
+            #submit-checkin-button,
+            #checkout-form button[type="submit"] {
+                width: 100%;
+                min-width: 0;
+            }
         }
 
 
@@ -387,22 +479,6 @@
                 </a>
 
 
-                <a href="{{ route('karyawan') }}"
-                   class="{{ request()->routeIs('karyawan') ? 'active' : '' }}">
-
-                    Daftar Karyawan
-
-                </a>
-
-
-                <a href="{{ route('history') }}"
-                   class="{{ request()->routeIs('history') ? 'active' : '' }}">
-
-                    History
-
-                </a>
-
-
                 <a href="{{ route('checkin') }}"
                    class="{{ request()->routeIs('checkin') ? 'active' : '' }}">
 
@@ -436,16 +512,6 @@
 
                             Profile
 
-                        </a>
-
-
-                        <a href="#">
-                            Notification
-                        </a>
-
-
-                        <a href="#">
-                            Security
                         </a>
 
                     </div>
@@ -593,6 +659,10 @@
                         <h3>
                             Profil Karyawan
                         </h3>
+
+                        <p style="margin:-10px 0 16px 0; color:#64748b; font-size:12px;">
+                            Data karyawan setelah ID Card terbaca
+                        </p>
 
 
                         <div class="checkin-row">
@@ -781,37 +851,14 @@
                                 </label>
 
 
-                                <select
+                                <input
                                     id="box_id"
                                     name="box_id"
                                     form="smartbox-form"
-                                    onchange="updateSmartBox(this)"
-                                >
-
-                                    <option value="">
-                                        -- Pilih Smart Box --
-                                    </option>
-
-
-                                    @foreach($smartBoxes as $box)
-
-                                        <option
-                                            value="{{ $box->id }}"
-                                            data-location="{{ $box->lokasi }}"
-                                            {{ (string)$selectedBoxId === (string)$box->id ? 'selected' : '' }}
-                                        >
-
-                                            {{ $box->kode_box }}
-
-                                            -
-                                            
-                                            {{ $box->lokasi }}
-
-                                        </option>
-
-                                    @endforeach
-
-                                </select>
+                                    type="number"
+                                    placeholder="-- Isi Smart Box --"
+                                    value="{{ $selectedBoxId ?? '' }}"
+                                />
 
                             </div>
 
@@ -828,31 +875,14 @@
                                 </label>
 
 
-                                <select
+                                <input
                                     id="district"
                                     name="district"
                                     form="smartbox-form"
-                                >
-
-                                    <option value="">
-                                        -- Pilih District --
-                                    </option>
-
-
-                                    @foreach($districts as $district)
-
-                                        <option
-                                            value="{{ $district }}"
-                                            {{ $selectedDistrict === $district ? 'selected' : '' }}
-                                        >
-
-                                            {{ $district }}
-
-                                        </option>
-
-                                    @endforeach
-
-                                </select>
+                                    type="text"
+                                    placeholder="-- Isi District --"
+                                    value="{{ $selectedDistrict ?? '' }}"
+                                />
 
                             </div>
 
@@ -949,6 +979,12 @@
                      LAYANAN / PEKERJAAN
                      ================================================= -->
 
+                <div style="margin-top: 22px;">
+                    <h3 style="margin:0 0 10px 0; font-size:18px; font-weight:700; color:#1f2937;">
+                        Form Layanan / Pekerjaan
+                    </h3>
+                </div>
+
                 <div class="service-grid">
 
 
@@ -963,30 +999,16 @@
                         </h4>
 
 
-                        <label
-                            class="service-option {{ old('jenis_layanan') === 'Survey' ? 'active' : '' }}"
+                        <div
+                            class="service-option"
                             data-service-label="Survey"
                         >
-
-                            <input
-                                type="radio"
-                                name="service_choice"
-                                value="Survey"
-                                data-service="Survey"
-                                {{ old('jenis_layanan') === 'Survey' ? 'checked' : '' }}
-                            >
-
 
                             <span>
                                 Survey
                             </span>
 
-
-                            <span class="service-selected-indicator">
-                                ✓ Dipilih
-                            </span>
-
-                        </label>
+                        </div>
 
 
                         <div class="service-field">
@@ -1020,30 +1042,16 @@
                         </h4>
 
 
-                        <label
-                            class="service-option {{ old('jenis_layanan') === 'Deployment' ? 'active' : '' }}"
+                        <div
+                            class="service-option"
                             data-service-label="Deployment"
                         >
-
-                            <input
-                                type="radio"
-                                name="service_choice"
-                                value="Deployment"
-                                data-service="Deployment"
-                                {{ old('jenis_layanan') === 'Deployment' ? 'checked' : '' }}
-                            >
-
 
                             <span>
                                 Deployment
                             </span>
 
-
-                            <span class="service-selected-indicator">
-                                ✓ Dipilih
-                            </span>
-
-                        </label>
+                        </div>
 
 
                         <div class="service-field">
@@ -1077,30 +1085,16 @@
                         </h4>
 
 
-                        <label
-                            class="service-option {{ old('jenis_layanan') === 'Assurance' ? 'active' : '' }}"
+                        <div
+                            class="service-option"
                             data-service-label="Assurance"
                         >
-
-                            <input
-                                type="radio"
-                                name="service_choice"
-                                value="Assurance"
-                                data-service="Assurance"
-                                {{ old('jenis_layanan') === 'Assurance' ? 'checked' : '' }}
-                            >
-
 
                             <span>
                                 Assurance
                             </span>
 
-
-                            <span class="service-selected-indicator">
-                                ✓ Dipilih
-                            </span>
-
-                        </label>
+                        </div>
 
 
                         <div class="service-field">
@@ -1134,30 +1128,16 @@
                         </h4>
 
 
-                        <label
-                            class="service-option {{ old('jenis_layanan') === 'Maintenance' ? 'active' : '' }}"
+                        <div
+                            class="service-option"
                             data-service-label="Maintenance"
                         >
-
-                            <input
-                                type="radio"
-                                name="service_choice"
-                                value="Maintenance"
-                                data-service="Maintenance"
-                                {{ old('jenis_layanan') === 'Maintenance' ? 'checked' : '' }}
-                            >
-
 
                             <span>
                                 Maintenance
                             </span>
 
-
-                            <span class="service-selected-indicator">
-                                ✓ Dipilih
-                            </span>
-
-                        </label>
+                        </div>
 
 
                         <div class="service-field">
@@ -1244,24 +1224,8 @@
                         >
 
 
-                        <!-- JENIS LAYANAN -->
-
-                        <input
-                            type="hidden"
-                            id="submit_jenis_layanan"
-                            name="jenis_layanan"
-                            value="{{ old('jenis_layanan', '') }}"
-                        >
-
-
-                        <!-- DESKRIPSI PEKERJAAN -->
-
-                        <input
-                            type="hidden"
-                            id="submit_deskripsi_pekerjaan"
-                            name="deskripsi_pekerjaan"
-                            value="{{ old('deskripsi_pekerjaan', '') }}"
-                        >
+                        <!-- CONTAINER FOR DYNAMIC SERVICE HIDDEN INPUTS -->
+                        <div id="dynamic-service-inputs"></div>
 
 
                         <button
@@ -1274,7 +1238,7 @@
                             @endif
                         >
 
-                            SIMPAN
+                            SIMPAN (CHEKIN)
 
                         </button>
 
@@ -1287,6 +1251,7 @@
                          ================================================= -->
 
                     <form
+                        id="checkout-form"
                         method="POST"
                         action="{{ route('checkin.checkout') }}"
                         style="display: inline;"
@@ -1331,7 +1296,7 @@
                             @endif
                         >
 
-                            CHEK OUT
+                            CHECKOUT
 
                         </button>
 
@@ -1356,755 +1321,353 @@
 
 <script>
 
+document.addEventListener('DOMContentLoaded', function () {
 
-/* =============================================================
-   UPDATE SMART BOX
-   ============================================================= */
+    const visibleBoxInput =
+        document.getElementById('box_id');
 
-function updateSmartBox(selectElement)
-{
-
-    const selectedOption =
-        selectElement.options[
-            selectElement.selectedIndex
-        ];
-
-
-    const location =
-        selectedOption.getAttribute('data-location');
-
-
-    const districtSelect =
+    const visibleDistrictInput =
         document.getElementById('district');
 
+    const checkinForm =
+        document.getElementById('checkin-form');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Jika Smart Box belum dipilih
-    |--------------------------------------------------------------------------
-    */
+    const checkoutForm =
+        document.getElementById('checkout-form');
 
-    if (!location) {
+    const submitCheckinButton =
+        document.getElementById('submit-checkin-button');
 
-        districtSelect.value = '';
+    const serviceDescriptions =
+        document.querySelectorAll('.service-description');
 
-        return;
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Pilih District sesuai lokasi Smart Box
-    |--------------------------------------------------------------------------
-    */
-
-    for (
-        let i = 0;
-        i < districtSelect.options.length;
-        i++
-    ) {
-
-        if (
-            districtSelect.options[i].value ===
-            location
-        ) {
-
-            districtSelect.selectedIndex = i;
-
-            break;
-
-        }
-
-    }
+    const dynamicServiceInputs =
+        document.getElementById('dynamic-service-inputs');
 
 
     /*
     |--------------------------------------------------------------------------
-    | Ambil form Smart Box
+    | HELPER UPDATE HIDDEN INPUT
     |--------------------------------------------------------------------------
     */
 
-    const form =
-        document.getElementById('smartbox-form');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cari input box_id
-    |--------------------------------------------------------------------------
-    */
-
-    let boxInput =
-        form.querySelector(
-            'input[name="box_id"]'
-        );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Kalau belum ada, buat input baru
-    |--------------------------------------------------------------------------
-    */
-
-    if (!boxInput) {
-
-        boxInput =
-            document.createElement('input');
-
-        boxInput.type = 'hidden';
-
-        boxInput.name = 'box_id';
-
-        form.appendChild(boxInput);
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Isi nilai Smart Box
-    |--------------------------------------------------------------------------
-    */
-
-    boxInput.value =
-        selectElement.value;
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Submit otomatis
-    |--------------------------------------------------------------------------
-    */
-
-    form.submit();
-
-}
-
-
-
-/* =============================================================
-   SERVICE / LAYANAN
-   ============================================================= */
-
-document.addEventListener(
-    'DOMContentLoaded',
-    function ()
+    function setHiddenValue(form, name, value)
     {
-
-        /*
-        |--------------------------------------------------------------------------
-        | ELEMENT FORM
-        |--------------------------------------------------------------------------
-        */
-
-        const checkinForm =
-            document.getElementById(
-                'checkin-form'
-            );
-
-
-        const submitJenisLayanan =
-            document.getElementById(
-                'submit_jenis_layanan'
-            );
-
-
-        const submitDeskripsiPekerjaan =
-            document.getElementById(
-                'submit_deskripsi_pekerjaan'
-            );
-
-
-        const submitButton =
-            document.getElementById(
-                'submit-checkin-button'
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | SEMUA PILIHAN SERVICE
-        |--------------------------------------------------------------------------
-        */
-
-        const serviceOptions =
-            document.querySelectorAll(
-                '.service-option'
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | SEMUA TEXTAREA
-        |--------------------------------------------------------------------------
-        */
-
-        const serviceDescriptions =
-            document.querySelectorAll(
-                '.service-description'
-            );
-
-
-
-        /* =========================================================
-           FUNGSI MENGAMBIL SERVICE YANG DIPILIH
-           ========================================================= */
-
-        function getSelectedService()
-        {
-
-            return document.querySelector(
-                'input[name="service_choice"]:checked'
-            );
-
+        if (!form) {
+            return;
         }
 
-
-
-        /* =========================================================
-           FUNGSI MENGAMBIL TEXTAREA SERVICE
-           ========================================================= */
-
-        function getSelectedDescription(
-            serviceName
-        )
-        {
-
-            return document.querySelector(
-                '.service-description[data-service="' +
-                serviceName +
-                '"]'
+        const input =
+            form.querySelector(
+                'input[name="' + name + '"]'
             );
 
+        if (input) {
+            input.value = value;
         }
-
-
-
-        /* =========================================================
-           SINKRONISASI DATA KE FORM SIMPAN
-           ========================================================= */
-
-        function syncServiceData()
-        {
-
-            const selected =
-                getSelectedService();
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Kalau belum memilih layanan
-            |--------------------------------------------------------------------------
-            */
-
-            if (!selected) {
-
-                if (submitJenisLayanan) {
-
-                    submitJenisLayanan.value =
-                        '';
-
-                }
-
-
-                if (submitDeskripsiPekerjaan) {
-
-                    submitDeskripsiPekerjaan.value =
-                        '';
-
-                }
-
-                return;
-
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Ambil nama layanan
-            |--------------------------------------------------------------------------
-            */
-
-            const selectedService =
-                selected.getAttribute(
-                    'data-service'
-                );
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Ambil textarea layanan tersebut
-            |--------------------------------------------------------------------------
-            */
-
-            const selectedDescription =
-                getSelectedDescription(
-                    selectedService
-                );
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Masukkan jenis layanan ke hidden input
-            |--------------------------------------------------------------------------
-            */
-
-            if (submitJenisLayanan) {
-
-                submitJenisLayanan.value =
-                    selectedService;
-
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Masukkan deskripsi ke hidden input
-            |--------------------------------------------------------------------------
-            */
-
-            if (submitDeskripsiPekerjaan) {
-
-                submitDeskripsiPekerjaan.value =
-                    selectedDescription
-                        ? selectedDescription.value
-                        : '';
-
-            }
-
-        }
-
-
-
-        /* =========================================================
-           UPDATE TAMPILAN CARD SERVICE
-           ========================================================= */
-
-        function updateServiceActiveState()
-        {
-
-            const selected =
-                getSelectedService();
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Hilangkan active dari semua card
-            |--------------------------------------------------------------------------
-            */
-
-            serviceOptions.forEach(
-                function (option)
-                {
-
-                    option.classList.remove(
-                        'active'
-                    );
-
-                }
-            );
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Kalau ada service yang dipilih,
-            | tambahkan active
-            |--------------------------------------------------------------------------
-            */
-
-            if (selected) {
-
-                const selectedOption =
-                    selected.closest(
-                        '.service-option'
-                    );
-
-
-                if (selectedOption) {
-
-                    selectedOption.classList.add(
-                        'active'
-                    );
-
-                }
-
-            }
-
-        }
-
-
-
-        /* =========================================================
-           EVENT KLIK SERVICE
-           ========================================================= */
-
-        serviceOptions.forEach(
-            function (option)
-            {
-
-                option.addEventListener(
-                    'click',
-                    function (event)
-                    {
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Cari radio button
-                        |--------------------------------------------------------------------------
-                        */
-
-                        const radio =
-                            option.querySelector(
-                                'input[type="radio"]'
-                            );
-
-
-                        if (!radio) {
-
-                            return;
-
-                        }
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Pastikan radio terpilih
-                        |--------------------------------------------------------------------------
-                        */
-
-                        radio.checked =
-                            true;
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Update tampilan
-                        |--------------------------------------------------------------------------
-                        */
-
-                        updateServiceActiveState();
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Sinkronisasi data
-                        |--------------------------------------------------------------------------
-                        */
-
-                        syncServiceData();
-
-                    }
-                );
-
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Event change radio
-                |--------------------------------------------------------------------------
-                */
-
-                const radio =
-                    option.querySelector(
-                        'input[type="radio"]'
-                    );
-
-
-                if (radio) {
-
-                    radio.addEventListener(
-                        'change',
-                        function ()
-                        {
-
-                            updateServiceActiveState();
-
-                            syncServiceData();
-
-                        }
-                    );
-
-                }
-
-            }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SMART BOX + DISTRICT MANUAL
+    |--------------------------------------------------------------------------
+    */
+
+    function syncManualLocation()
+    {
+        const boxValue =
+            visibleBoxInput
+                ? visibleBoxInput.value.trim()
+                : '';
+
+        const districtValue =
+            visibleDistrictInput
+                ? visibleDistrictInput.value.trim()
+                : '';
+
+        setHiddenValue(
+            checkinForm,
+            'box_id',
+            boxValue
         );
 
+        setHiddenValue(
+            checkinForm,
+            'district',
+            districtValue
+        );
+
+        setHiddenValue(
+            checkoutForm,
+            'box_id',
+            boxValue
+        );
+
+        setHiddenValue(
+            checkoutForm,
+            'district',
+            districtValue
+        );
+
+        const employeeIdInput =
+            checkinForm
+                ? checkinForm.querySelector(
+                    'input[name="karyawan_id"]'
+                )
+                : null;
+
+        const employeeId =
+            employeeIdInput
+                ? employeeIdInput.value.trim()
+                : '';
+
+        const canSubmit =
+            employeeId !== '' &&
+            boxValue !== '' &&
+            districtValue !== '';
+
+        if (submitCheckinButton) {
+            submitCheckinButton.disabled =
+                !canSubmit;
+        }
+
+        if (checkoutForm) {
+
+            const checkoutButton =
+                checkoutForm.querySelector(
+                    'button[type="submit"]'
+                );
+
+            if (checkoutButton) {
+                checkoutButton.disabled =
+                    !canSubmit;
+            }
+        }
+    }
 
 
-        /* =========================================================
-           EVENT INPUT TEXTAREA
-           ========================================================= */
+    if (visibleBoxInput) {
+
+        visibleBoxInput.addEventListener(
+            'input',
+            syncManualLocation
+        );
+
+        visibleBoxInput.addEventListener(
+            'change',
+            syncManualLocation
+        );
+    }
+
+
+    if (visibleDistrictInput) {
+
+        visibleDistrictInput.addEventListener(
+            'input',
+            syncManualLocation
+        );
+
+        visibleDistrictInput.addEventListener(
+            'change',
+            syncManualLocation
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SEMUA LAYANAN BERDASARKAN TEXTAREA YANG DIISI
+    |--------------------------------------------------------------------------
+    |
+    | Tidak ada lagi pilihan satu layanan.
+    | Admin boleh mengisi 1, 2, 3, atau semua layanan.
+    |--------------------------------------------------------------------------
+    */
+
+    function buildServiceInputs()
+    {
+        if (!dynamicServiceInputs) {
+            return false;
+        }
+
+        while (dynamicServiceInputs.firstChild) {
+            dynamicServiceInputs.removeChild(
+                dynamicServiceInputs.firstChild
+            );
+        }
+
+        let anyFilled = false;
 
         serviceDescriptions.forEach(
             function (textarea)
             {
+                const value =
+                    textarea.value.trim();
 
-                textarea.addEventListener(
-                    'input',
-                    function ()
-                    {
+                const serviceName =
+                    textarea.getAttribute(
+                        'data-service'
+                    );
 
-                        const selected =
-                            getSelectedService();
+                if (
+                    value === '' ||
+                    !serviceName
+                ) {
+                    return;
+                }
 
+                anyFilled = true;
 
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Hanya sinkronkan textarea
-                        | yang sedang dipilih
-                        |--------------------------------------------------------------------------
-                        */
+                const serviceInput =
+                    document.createElement(
+                        'input'
+                    );
 
-                        if (
-                            selected &&
-                            selected.getAttribute(
-                                'data-service'
-                            ) ===
-                            textarea.getAttribute(
-                                'data-service'
-                            )
-                        ) {
+                serviceInput.type =
+                    'hidden';
 
-                            syncServiceData();
+                serviceInput.name =
+                    'jenis_layanan[]';
 
-                        }
+                serviceInput.value =
+                    serviceName;
 
-                    }
+                dynamicServiceInputs.appendChild(
+                    serviceInput
                 );
 
+
+                const descriptionInput =
+                    document.createElement(
+                        'input'
+                    );
+
+                descriptionInput.type =
+                    'hidden';
+
+                descriptionInput.name =
+                    'deskripsi_pekerjaan[]';
+
+                descriptionInput.value =
+                    value;
+
+                dynamicServiceInputs.appendChild(
+                    descriptionInput
+                );
             }
         );
 
-
-
-        /* =========================================================
-           VALIDASI SAAT SIMPAN
-           ========================================================= */
-
-        if (checkinForm) {
-
-            checkinForm.addEventListener(
-                'submit',
-                function (event)
-                {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Ambil layanan yang dipilih
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const selected =
-                        getSelectedService();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | VALIDASI LAYANAN
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (!selected) {
-
-                        event.preventDefault();
-
-                        alert(
-                            'Silakan pilih jenis layanan terlebih dahulu.'
-                        );
-
-                        return;
-
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Sinkronisasi sebelum validasi
-                    |--------------------------------------------------------------------------
-                    */
-
-                    syncServiceData();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Ambil jenis layanan
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const selectedService =
-                        selected.getAttribute(
-                            'data-service'
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Ambil textarea sesuai service
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const selectedDescription =
-                        getSelectedDescription(
-                            selectedService
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Ambil isi deskripsi
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const descriptionValue =
-                        selectedDescription
-                            ? selectedDescription.value.trim()
-                            : '';
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | VALIDASI DESKRIPSI
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (!descriptionValue) {
-
-                        event.preventDefault();
-
-                        alert(
-                            'Silakan isi deskripsi pekerjaan terlebih dahulu.'
-                        );
-
-
-                        /*
-                        | Fokus ke textarea
-                        */
-
-                        if (selectedDescription) {
-
-                            selectedDescription.focus();
-
-                        }
-
-                        return;
-
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Pastikan hidden input benar
-                    |--------------------------------------------------------------------------
-                    */
-
-                    submitJenisLayanan.value =
-                        selectedService;
-
-
-                    submitDeskripsiPekerjaan.value =
-                        descriptionValue;
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Submit dilanjutkan
-                    |--------------------------------------------------------------------------
-                    */
-
-                }
-            );
-
-        }
-
-
-
-        /* =========================================================
-           EDIT BUTTON
-           ========================================================= */
-
-        const editButton =
-            document.getElementById(
-                'edit-service-button'
-            );
-
-
-        if (editButton) {
-
-            editButton.addEventListener(
-                'click',
-                function ()
-                {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Ambil layanan yang sedang dipilih
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const selected =
-                        getSelectedService();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Kalau belum ada layanan
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (!selected) {
-
-                        alert(
-                            'Silakan pilih jenis layanan terlebih dahulu.'
-                        );
-
-                        return;
-
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Fokus ke deskripsi layanan
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const selectedService =
-                        selected.getAttribute(
-                            'data-service'
-                        );
-
-
-                    const selectedDescription =
-                        getSelectedDescription(
-                            selectedService
-                        );
-
-
-                    if (selectedDescription) {
-
-                        selectedDescription.focus();
-
-                    }
-
-                }
-            );
-
-        }
-
-
-
-        /* =========================================================
-           INITIAL STATE
-           ========================================================= */
-
-        updateServiceActiveState();
-
-        syncServiceData();
-
+        return anyFilled;
     }
-);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SIMPAN CHECKIN
+    |--------------------------------------------------------------------------
+    */
+
+    if (checkinForm) {
+
+        checkinForm.addEventListener(
+            'submit',
+            function (event)
+            {
+                syncManualLocation();
+
+                const hasService =
+                    buildServiceInputs();
+
+                if (!hasService) {
+
+                    event.preventDefault();
+
+                    alert(
+                        'Silakan isi minimal satu deskripsi pekerjaan.'
+                    );
+
+                    return;
+                }
+            }
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHECKOUT
+    |--------------------------------------------------------------------------
+    */
+
+    if (checkoutForm) {
+
+        checkoutForm.addEventListener(
+            'submit',
+            function ()
+            {
+                syncManualLocation();
+            }
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | EDIT BUTTON
+    |--------------------------------------------------------------------------
+    */
+
+    const editButton =
+        document.getElementById(
+            'edit-service-button'
+        );
+
+    if (editButton) {
+
+        editButton.addEventListener(
+            'click',
+            function ()
+            {
+                let target = null;
+
+                serviceDescriptions.forEach(
+                    function (textarea)
+                    {
+                        if (
+                            !target &&
+                            textarea.value.trim() !== ''
+                        ) {
+                            target = textarea;
+                        }
+                    }
+                );
+
+                if (
+                    !target &&
+                    serviceDescriptions.length > 0
+                ) {
+                    target =
+                        serviceDescriptions[0];
+                }
+
+                if (target) {
+                    target.focus();
+                }
+            }
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | INITIAL STATE
+    |--------------------------------------------------------------------------
+    */
+
+    syncManualLocation();
+
+});
 
 </script>
 

@@ -21,8 +21,6 @@
                 <h2>Menu</h2>
                 <nav class="dashboard-nav">
                     <a href="{{ route('dashboard') }}">Dashboard</a>
-                    <a href="{{ route('karyawan') }}">Daftar Karyawan</a>
-                    <a href="{{ route('history') }}">History</a>
                     <a href="{{ route('checkin') }}">Chekin/Chekout</a>
                 </nav>
             </div>
@@ -34,8 +32,6 @@
                         <summary>Setting</summary>
                         <div class="sidebar-dropdown-menu">
                             <a href="{{ route('profile') }}" class="active">Profile</a>
-                            <a href="#">Notification</a>
-                            <a href="#">Security</a>
                         </div>
                     </details>
                 </nav>
