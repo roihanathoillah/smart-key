@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -48,39 +49,87 @@ class DashboardController extends Controller
 
     public function superAdmin(Request $request)
     {
+        $today = now()->toDateString();
+        $hasCheckinTable = Schema::hasTable('checkin_checkouts');
+        $hasEmployeeTable = Schema::hasTable('karyawans');
+
+        $totalToday = 0;
+        $successfulToday = 0;
+        $rejectedToday = 0;
+        $chart = collect(range(6, 0))->map(function ($daysAgo) {
+            return [
+                'label' => now()->subDays($daysAgo)->format('d/m'),
+                'checkin' => 0,
+                'checkout' => 0,
+            ];
+        })->values();
+
+        if ($hasCheckinTable) {
+            $todayQuery = DB::table('checkin_checkouts')->whereDate('tanggal', $today);
+            $totalToday = (clone $todayQuery)->count();
+            $successfulToday = (clone $todayQuery)
+                ->whereIn(DB::raw('LOWER(status)'), ['checkin', 'chekin', 'checkout', 'berhasil', 'success'])
+                ->count();
+            $rejectedToday = (clone $todayQuery)
+                ->whereIn(DB::raw('LOWER(status)'), ['ditolak', 'rejected', 'gagal', 'failed'])
+                ->count();
+
+            $chart = $chart->map(function ($item, $index) {
+                $date = now()->subDays(6 - $index)->toDateString();
+                $dayQuery = DB::table('checkin_checkouts')->whereDate('tanggal', $date);
+
+                return [
+                    'label' => $item['label'],
+                    'checkin' => (clone $dayQuery)->whereIn(DB::raw('LOWER(status)'), ['checkin', 'chekin'])->count(),
+                    'checkout' => (clone $dayQuery)->whereRaw("LOWER(status) = 'checkout'")->count(),
+                ];
+            });
+        }
+
         $stats = [
-            ['label' => 'Total Smart Box', 'value' => '128', 'meta' => '8.5% Up from yesterday', 'icon' => '📦', 'accent' => '#2563eb'],
-            ['label' => 'Akses Hari ini', 'value' => '256', 'meta' => '8.5% Up from yesterday', 'icon' => '⚡', 'accent' => '#f59e0b'],
-            ['label' => 'Akses Berhasil', 'value' => '232', 'meta' => '1.8% Up from yesterday', 'icon' => '✅', 'accent' => '#10b981'],
-            ['label' => 'Akses Ditolak', 'value' => '24', 'meta' => '4.3% Down from yesterday', 'icon' => '❌', 'accent' => '#ef4444'],
+            ['label' => 'Akses Hari Ini (Total)', 'value' => $totalToday, 'meta' => 'Total akses hari ini', 'icon' => '⚡', 'accent' => '#f59e0b'],
+            ['label' => 'Akses Berhasil', 'value' => $successfulToday, 'meta' => 'Akses yang berhasil', 'icon' => '✅', 'accent' => '#10b981'],
+            ['label' => 'Akses Ditolak', 'value' => $rejectedToday, 'meta' => 'Akses yang ditolak', 'icon' => '❌', 'accent' => '#ef4444'],
         ];
 
-        $rawActivities = collect(range(1, 20))->map(function ($index) {
-            return [
-                'id' => '#6548',
-                'name' => 'Roi Kiyosi',
-                'date' => '22/08/2026',
-                'box' => 'BoX-miq-01',
-                'checkin' => 'BoX-miq-01',
-                'checkout' => 'BoX-miq-01',
-                'location' => 'Malang',
-                'status' => 'Chekin',
-            ];
-        });
+        $activities = collect();
 
-        $perPage = 4;
-        $page = $request->query('page', 1);
-        $currentItems = $rawActivities->slice(($page - 1) * $perPage, $perPage)->values();
+        if ($hasCheckinTable) {
+            $activityQuery = DB::table('checkin_checkouts')
+                ->select(
+                    'checkin_checkouts.id',
+                    'checkin_checkouts.kode_data',
+                    'checkin_checkouts.tanggal',
+                    'checkin_checkouts.smart_box_id',
+                    'checkin_checkouts.jam_checkin',
+                    'checkin_checkouts.jam_checkout',
+                    'checkin_checkouts.lokasi',
+                    'checkin_checkouts.status'
+                )
+                ->orderByDesc('checkin_checkouts.id');
 
-        $activities = new LengthAwarePaginator(
-            $currentItems,
-            $rawActivities->count(),
-            $perPage,
-            $page,
-            ['path' => $request->url(), 'query' => $request->query()]
-        );
+            if ($hasEmployeeTable) {
+                $activityQuery->leftJoin('karyawans', 'checkin_checkouts.karyawan_id', '=', 'karyawans.id')
+                    ->addSelect('karyawans.nama_lengkap');
+            }
 
-        return view('auth.dashboardspradmin', compact('stats', 'activities'));
+            $activities = $activityQuery->limit(20)->get()->map(function ($item) {
+                $status = strtolower((string) ($item->status ?? ''));
+
+                return [
+                    'id' => $item->kode_data ?? ('#' . $item->id),
+                    'name' => $item->nama_lengkap ?? '-',
+                    'date' => $item->tanggal ? date('d/m/Y', strtotime($item->tanggal)) : '-',
+                    'box' => $item->smart_box_id ? '#' . $item->smart_box_id : '-',
+                    'checkin' => $item->jam_checkin ?? '-',
+                    'checkout' => $item->jam_checkout ?? '-',
+                    'location' => $item->lokasi ?? '-',
+                    'status' => $status === 'checkout' ? 'Checkout' : ($status === 'checkin' || $status === 'chekin' ? 'Chekin' : ucfirst($status ?: '-')),
+                ];
+            });
+        }
+
+        return view('auth.dashboardspradmin', compact('stats', 'activities', 'chart'));
     }
 
     public function employees(Request $request)

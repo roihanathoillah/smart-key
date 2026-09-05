@@ -623,9 +623,24 @@
 
 .dashboard-cards {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
 }
+
+.super-admin-stats { max-width: 960px; }
+.activity-chart-card { padding: 20px 22px 18px; }
+.activity-chart { min-height: 220px; padding-top: 18px; }
+.chart-legend { display: flex; gap: 22px; color: #64748b; font-size: 0.8rem; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend-dot { width: 9px; height: 9px; border-radius: 999px; }
+.legend-dot.checkin, .chart-bar.checkin { background: #2563eb; }
+.legend-dot.checkout, .chart-bar.checkout { background: #34d399; }
+.chart-bars { height: 170px; display: flex; align-items: stretch; justify-content: space-around; gap: 12px; margin-top: 12px; border-bottom: 1px solid #e5e7eb; }
+.chart-column { flex: 1; min-width: 28px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 8px; }
+.chart-bar-group { height: 145px; display: flex; align-items: flex-end; gap: 4px; }
+.chart-bar { display: block; width: 14px; min-height: 4px; border-radius: 5px 5px 0 0; }
+.chart-column small { color: #94a3b8; font-size: 0.72rem; }
+.empty-activity { padding: 28px !important; text-align: center !important; color: #64748b; }
 
 .dashboard-card {
     background: #ffffff;

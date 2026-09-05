@@ -56,7 +56,7 @@
                 </div>
             </header>
 
-            <section class="dashboard-cards">
+            <section class="dashboard-cards super-admin-stats">
                 @foreach ($stats as $stat)
                     <article class="dashboard-card" style="border-top-color: {{ $stat['accent'] }};">
                         <div class="card-icon">{{ $stat['icon'] }}</div>
@@ -70,6 +70,38 @@
             </section>
 
             <section class="dashboard-grid">
+                <div class="activity-card activity-chart-card">
+                    <div class="activity-card-header">
+                        <div>
+                            <p>Dashboard</p>
+                            <h2>Grafik Aktivitas</h2>
+                        </div>
+                        <span>Checkin dan Checkout</span>
+                    </div>
+                    <div class="activity-chart" aria-label="Grafik aktivitas checkin dan checkout">
+                        <div class="chart-legend">
+                            <span><i class="legend-dot checkin"></i>Checkin</span>
+                            <span><i class="legend-dot checkout"></i>Checkout</span>
+                        </div>
+                        <div class="chart-bars">
+                            @foreach ($chart as $day)
+                                @php
+                                    $maxValue = max(1, $chart->max(fn ($item) => max($item['checkin'], $item['checkout'])));
+                                    $checkinHeight = ($day['checkin'] / $maxValue) * 100;
+                                    $checkoutHeight = ($day['checkout'] / $maxValue) * 100;
+                                @endphp
+                                <div class="chart-column">
+                                    <div class="chart-bar-group">
+                                        <span class="chart-bar checkin" style="height: {{ max(4, $checkinHeight) }}%;" title="{{ $day['checkin'] }} checkin"></span>
+                                        <span class="chart-bar checkout" style="height: {{ max(4, $checkoutHeight) }}%;" title="{{ $day['checkout'] }} checkout"></span>
+                                    </div>
+                                    <small>{{ $day['label'] }}</small>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
                 <div class="activity-card">
                     <div class="activity-card-header">
                         <div>
@@ -93,7 +125,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($activities as $activity)
+                                @forelse ($activities as $activity)
                                     <tr>
                                         <td>{{ $activity['id'] }}</td>
                                         <td>{{ $activity['name'] }}</td>
@@ -104,42 +136,13 @@
                                         <td>{{ $activity['location'] }}</td>
                                         <td><span class="status-pill">{{ $activity['status'] }}</span></td>
                                     </tr>
-                                @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="empty-activity">Belum ada aktivitas checkin atau checkout.</td>
+                                </tr>
+                            @endforelse
                             </tbody>
                         </table>
-                    </div>
-                    <div class="activity-pagination">
-                        <div class="pagination-summary">
-                            Showing {{ $activities->firstItem() }} - {{ $activities->lastItem() }} of {{ $activities->total() }}
-                        </div>
-                        <div class="pagination-links">
-                            @if ($activities->onFirstPage())
-                                <span class="page disabled">Previous</span>
-                            @else
-                                <a class="page" href="{{ $activities->previousPageUrl() }}">Previous</a>
-                            @endif
-
-                            @php
-                                $totalPages = $activities->lastPage();
-                                $currentPage = $activities->currentPage();
-                                $startPage = max(1, min($currentPage - 1, $totalPages - 3));
-                                $endPage = min($totalPages, $startPage + 3);
-                            @endphp
-
-                            @foreach (range($startPage, $endPage) as $page)
-                                @if ($page == $activities->currentPage())
-                                    <span class="page active">{{ $page }}</span>
-                                @else
-                                    <a class="page" href="{{ $activities->url($page) }}">{{ $page }}</a>
-                                @endif
-                            @endforeach
-
-                            @if ($activities->hasMorePages())
-                                <a class="page" href="{{ $activities->nextPageUrl() }}">Next</a>
-                            @else
-                                <span class="page disabled">Next</span>
-                            @endif
-                        </div>
                     </div>
                 </div>
             </section>
