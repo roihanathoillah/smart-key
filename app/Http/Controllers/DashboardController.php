@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -290,9 +291,9 @@ class DashboardController extends Controller
         $totalToday = 0;
         $successfulToday = 0;
         $rejectedToday = 0;
-        $chart = collect(range(6, 0))->map(function ($daysAgo) {
+        $chart = collect(['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'])->map(function ($label) {
             return [
-                'label' => now()->subDays($daysAgo)->format('d/m'),
+                'label' => $label,
                 'checkin' => 0,
                 'checkout' => 0,
             ];
@@ -308,14 +309,27 @@ class DashboardController extends Controller
                 ->whereIn(DB::raw('LOWER(status)'), ['ditolak', 'rejected', 'gagal', 'failed'])
                 ->count();
 
-            $chart = $chart->map(function ($item, $index) {
-                $date = now()->subDays(6 - $index)->toDateString();
-                $dayQuery = DB::table('checkin_checkouts')->whereDate('tanggal', $date);
+            $todayActivities = DB::table('checkin_checkouts')
+                ->whereDate('tanggal', $today)
+                ->get(['jam_checkin', 'jam_checkout']);
+
+            $chart = $chart->map(function ($item, $index) use ($todayActivities) {
+                $startHour = $index * 4;
+                $endHour = $index === 6 ? 24 : $startHour + 4;
+                $inRange = function ($time) use ($startHour, $endHour) {
+                    if (! $time) {
+                        return false;
+                    }
+
+                    $hour = (int) date('G', strtotime((string) $time));
+
+                    return $hour >= $startHour && $hour < $endHour;
+                };
 
                 return [
                     'label' => $item['label'],
-                    'checkin' => (clone $dayQuery)->whereIn(DB::raw('LOWER(status)'), ['checkin', 'chekin'])->count(),
-                    'checkout' => (clone $dayQuery)->whereRaw("LOWER(status) = 'checkout'")->count(),
+                    'checkin' => $todayActivities->filter(fn ($activity) => $inRange($activity->jam_checkin))->count(),
+                    'checkout' => $todayActivities->filter(fn ($activity) => $inRange($activity->jam_checkout))->count(),
                 ];
             });
         }
@@ -582,85 +596,77 @@ class DashboardController extends Controller
             ->with('success', 'Karyawan berhasil ditolak.');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | HISTORY SUPER ADMIN
-    |--------------------------------------------------------------------------
-    */
+    public function storeSuperAdminEmployee(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:150',
+            'nik' => 'required|string|max:30|unique:karyawans,nik',
+            'jabatan' => 'required|string|max:100',
+        ]);
+
+        Karyawan::create([
+            'id_card' => 'EMP-' . $data['nik'],
+            'nama_lengkap' => $data['name'],
+            'nik' => $data['nik'],
+            'jabatan' => $data['jabatan'],
+            'status' => 'pending',
+        ]);
+
+        return redirect()->route('karyawan.super')->with('success', 'Data karyawan berhasil ditambahkan dan menunggu persetujuan.');
+    }
 
     public function superAdminHistory(Request $request)
     {
         $search = $request->query('q');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
         $perPage = 4;
 
-        $rawHistory = collect(range(1, 50))->map(function ($index) {
-            $statusOptions = ['Chekin', 'Checkout'];
-            $status = $statusOptions[$index % 2];
+        $historyQuery = Schema::hasTable('checkin_checkouts')
+            ? DB::table('checkin_checkouts')->select('checkin_checkouts.*')
+            : null;
 
-            $names = [
-                'Roi Kiyosi',
-                'Muhammad',
-                'Ahmad Wildan',
-                'ALfauzi',
-                'Anas Fikri',
-                'Maulana Malik',
-                'Ilham',
-                'Rizky Ridho',
-                'Nanda',
-                'Taufik Quridho'
-            ];
+        if ($historyQuery) {
+            if (Schema::hasTable('karyawans')) {
+                $historyQuery->leftJoin('karyawans', 'checkin_checkouts.karyawan_id', '=', 'karyawans.id')
+                    ->addSelect('karyawans.nama_lengkap');
+            }
+            if ($search) {
+                $historyQuery->where(function ($builder) use ($search) {
+                    $builder->where('checkin_checkouts.kode_data', 'like', "%{$search}%")
+                        ->orWhere('checkin_checkouts.lokasi', 'like', "%{$search}%");
+                });
+            }
+            if ($dateFrom) {
+                $historyQuery->whereDate('checkin_checkouts.tanggal', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $historyQuery->whereDate('checkin_checkouts.tanggal', '<=', $dateTo);
+            }
 
-            $boxes = [
-                'BoX-mlg-01',
-                'BoX-mlg-02',
-                'BoX-mlg-03'
-            ];
+            $history = $historyQuery->orderByDesc('checkin_checkouts.id')->paginate($perPage)->withQueryString();
+            $history->setCollection($history->getCollection()->map(fn ($item) => $this->mapCheckinActivity($item)));
+        } else {
+            $history = new LengthAwarePaginator([], 0, $perPage, 1, ['path' => $request->url(), 'query' => $request->query()]);
+        }
 
-            $locations = [
-                'Malang',
-                'Surabaya',
-                'Jakarta'
-            ];
+        return view('auth.historyspradmin', compact('history', 'search', 'dateFrom', 'dateTo', 'perPage'));
+    }
 
-            return [
-                'id' => '#6548',
-                'name' => $names[$index % count($names)],
-                'date' => now()->subDays($index)->format('d/m/Y'),
-                'box' => $boxes[$index % count($boxes)],
-                'checkin' => 'BoX-mlg-01',
-                'checkout' => 'BoX-mlg-01',
-                'location' => $locations[$index % count($locations)],
-                'status' => $status,
-            ];
-        });
+    private function mapCheckinActivity(object $item): array
+    {
+        $status = strtolower((string) ($item->status ?? ''));
 
-        $history = $rawHistory->filter(function ($item) use ($search) {
-            return ! $search ||
-                str_contains(strtolower($item['id']), strtolower($search)) ||
-                str_contains(strtolower($item['name']), strtolower($search));
-        })->values();
-
-        $page = $request->query('page', 1);
-
-        $currentItems = $history
-            ->slice(($page - 1) * $perPage, $perPage)
-            ->values();
-
-        $history = new LengthAwarePaginator(
-            $currentItems,
-            $history->count(),
-            $perPage,
-            $page,
-            [
-                'path' => $request->url(),
-                'query' => $request->query()
-            ]
-        );
-
-        return view(
-            'auth.historyspradmin',
-            compact('history', 'search', 'perPage')
-        );
+        return [
+            'id' => $item->kode_data ?? ('#' . $item->id),
+            'name' => $item->nama_lengkap ?? '-',
+            'date' => $item->tanggal ? date('d/m/Y', strtotime($item->tanggal)) : '-',
+            'box' => $item->smart_box_id ? '#' . $item->smart_box_id : '-',
+            'checkin' => $item->jam_checkin ?? '-',
+            'checkout' => $item->jam_checkout ?? '-',
+            'location' => $item->lokasi ?? '-',
+            'status' => $status === 'checkout' ? 'Checkout' : ($status === 'checkin' || $status === 'chekin' ? 'Chekin' : ucfirst($status ?: '-')),
+        ];
     }
 
     /*

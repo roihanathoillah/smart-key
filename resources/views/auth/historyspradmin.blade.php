@@ -66,7 +66,9 @@
                             <button type="submit" class="search-button">🔍</button>
                         </div>
                         <div class="history-actions">
-                            <button type="button" class="date-filter-button">Filter by date range</button>
+                            <input type="date" name="date_from" value="{{ $dateFrom ?? '' }}" aria-label="Tanggal mulai">
+                            <input type="date" name="date_to" value="{{ $dateTo ?? '' }}" aria-label="Tanggal akhir">
+                            <button type="submit" class="date-filter-button">Filter</button>
                         </div>
                     </form>
                 </div>

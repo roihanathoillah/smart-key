@@ -27,7 +27,6 @@ Route::post('/register', [RegisterController::class, 'store']);
 // ====================
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
 Route::get('/karyawan', [DashboardController::class, 'employees'])->name('karyawan');
 
 Route::post('/karyawan', [DashboardController::class, 'storeEmployee'])
@@ -65,6 +64,9 @@ Route::middleware('superadmin')->prefix('super-admin')->group(function () {
 
     Route::get('/karyawan', [DashboardController::class, 'superAdminEmployees'])
         ->name('karyawan.super');
+
+    Route::post('/karyawan', [DashboardController::class, 'storeSuperAdminEmployee'])
+        ->name('karyawan.super.store');
 
     // Approve karyawan
     Route::post('/karyawan/{id}/approve', [DashboardController::class, 'approveEmployee'])
