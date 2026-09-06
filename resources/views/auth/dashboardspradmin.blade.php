@@ -76,28 +76,44 @@
                             <p>Dashboard</p>
                             <h2>Grafik Aktivitas</h2>
                         </div>
-                        <span>Checkin dan Checkout</span>
+                        <span>Kapan Checkin - Kapan Checkout</span>
                     </div>
                     <div class="activity-chart" aria-label="Grafik aktivitas checkin dan checkout">
                         <div class="chart-legend">
                             <span><i class="legend-dot checkin"></i>Checkin</span>
                             <span><i class="legend-dot checkout"></i>Checkout</span>
                         </div>
-                        <div class="chart-bars">
-                            @foreach ($chart as $day)
-                                @php
-                                    $maxValue = max(1, $chart->max(fn ($item) => max($item['checkin'], $item['checkout'])));
-                                    $checkinHeight = ($day['checkin'] / $maxValue) * 100;
-                                    $checkoutHeight = ($day['checkout'] / $maxValue) * 100;
-                                @endphp
-                                <div class="chart-column">
-                                    <div class="chart-bar-group">
-                                        <span class="chart-bar checkin" style="height: {{ max(4, $checkinHeight) }}%;" title="{{ $day['checkin'] }} checkin"></span>
-                                        <span class="chart-bar checkout" style="height: {{ max(4, $checkoutHeight) }}%;" title="{{ $day['checkout'] }} checkout"></span>
-                                    </div>
-                                    <small>{{ $day['label'] }}</small>
-                                </div>
-                            @endforeach
+                        @php
+                            $chartMax = max(4, (int) $chart->max(fn ($item) => max($item['checkin'], $item['checkout'])));
+                            $chartPoints = function ($key) use ($chart, $chartMax) {
+                                return $chart->values()->map(function ($item, $index) use ($key, $chartMax) {
+                                    $x = 28 + ($index * 104);
+                                    $y = 190 - (($item[$key] / $chartMax) * 160);
+                                    return number_format($x, 2) . ',' . number_format($y, 2);
+                                })->implode(' ');
+                            };
+                        @endphp
+                        <div class="line-chart-wrapper">
+                            <div class="line-chart-y-labels" aria-hidden="true">
+                                <span>{{ $chartMax }}</span><span>{{ round($chartMax * .75) }}</span><span>{{ round($chartMax * .5) }}</span><span>{{ round($chartMax * .25) }}</span><span>0</span>
+                            </div>
+                            <svg class="line-chart" viewBox="0 0 700 230" role="img" aria-label="Perbandingan jumlah checkin dan checkout hari ini">
+                                <g class="chart-grid-lines">
+                                    <line x1="28" y1="30" x2="652" y2="30"></line>
+                                    <line x1="28" y1="70" x2="652" y2="70"></line>
+                                    <line x1="28" y1="110" x2="652" y2="110"></line>
+                                    <line x1="28" y1="150" x2="652" y2="150"></line>
+                                    <line x1="28" y1="190" x2="652" y2="190"></line>
+                                </g>
+                                <polyline class="chart-line checkin" points="{{ $chartPoints('checkin') }}"></polyline>
+                                <polyline class="chart-line checkout" points="{{ $chartPoints('checkout') }}"></polyline>
+                                @foreach ($chart as $index => $point)
+                                    @php $x = 28 + ($index * 104); @endphp
+                                    <circle class="chart-point checkin" cx="{{ $x }}" cy="{{ 190 - (($point['checkin'] / $chartMax) * 160) }}" r="3.5" title="{{ $point['checkin'] }} checkin"></circle>
+                                    <circle class="chart-point checkout" cx="{{ $x }}" cy="{{ 190 - (($point['checkout'] / $chartMax) * 160) }}" r="3.5" title="{{ $point['checkout'] }} checkout"></circle>
+                                    <text class="chart-x-label" x="{{ $x }}" y="218" text-anchor="middle">{{ $point['label'] }}</text>
+                                @endforeach
+                            </svg>
                         </div>
                     </div>
                 </div>

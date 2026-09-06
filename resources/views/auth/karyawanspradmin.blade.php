@@ -285,6 +285,20 @@
 
             </header>
 
+            @if (session('success'))
+                <div class="dashboard-alert success">{{ session('success') }}</div>
+            @endif
+            @if ($errors->any())
+                <div class="dashboard-alert error">{{ $errors->first() }}</div>
+            @endif
+
+            <section class="employee-add-panel">
+                <div>
+                    <p class="page-label">Registrasi Berhasil</p>
+                    <h2>Daftar Karyawan</h2>
+                </div>
+                <button type="button" class="employee-add-trigger" data-modal-open="employee-modal">+ Tambah Karyawan</button>
+            </section>
 
             <section class="activity-card table-card">
 
@@ -322,7 +336,6 @@
                             @forelse ($employees as $employee)
 
                                 <tr>
-
                                     <td>
                                         {{ $employee['id'] }}
                                     </td>
@@ -524,5 +537,60 @@
         </main>
 
     </div>
+    <div class="employee-modal" id="employee-modal" aria-hidden="true">
+        <div class="employee-modal-backdrop" data-modal-close="employee-modal"></div>
+        <section class="employee-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="employee-modal-title">
+            <div class="employee-modal-header">
+                <h2 id="employee-modal-title">Form Tambah Karyawan</h2>
+                <button type="button" class="employee-modal-close" data-modal-close="employee-modal" aria-label="Tutup">&times;</button>
+            </div>
+            <form method="post" action="{{ route('karyawan.super.store') }}" class="employee-modal-form">
+                @csrf
+                <div class="employee-form-field"><label for="employee-name">Nama</label><input id="employee-name" type="text" name="name" placeholder="Masukkan nama" value="{{ old('name') }}" required></div>
+                <div class="employee-form-field"><label for="employee-alamat">Alamat</label><input id="employee-alamat" type="text" name="alamat" placeholder="Masukkan alamat" value="{{ old('alamat') }}" required></div>
+                <div class="employee-form-field"><label for="employee-tanggal">Tanggal Lahir</label><input id="employee-tanggal" type="date" name="tanggal_lahir" value="{{ old('tanggal_lahir') }}" required></div>
+                <div class="employee-form-field"><label for="employee-gender">Jenis Kelamin</label><select id="employee-gender" name="jenis_kelamin" required><option value="">Pilih jenis kelamin</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
+                <div class="employee-form-field"><label for="employee-nik">NIK</label><input id="employee-nik" type="text" name="nik" placeholder="Masukkan NIK" value="{{ old('nik') }}" required></div>
+                <div class="employee-form-field"><label for="employee-ods">ODS</label><select id="employee-ods" name="ods" required><option value="">Pilih ODS</option><option value="ODS 1">ODS 1</option><option value="ODS 2">ODS 2</option><option value="ODS 3">ODS 3</option></select></div>
+                <div class="employee-form-field"><label for="employee-email">Email</label><input id="employee-email" type="email" name="email" placeholder="Masukkan email" value="{{ old('email') }}" required></div>
+                <div class="employee-form-field"><label for="employee-status">Status</label><select id="employee-status" name="status" required><option value="">Pilih status</option><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select></div>
+                <div class="employee-form-field"><label for="employee-jabatan">Jabatan</label><select id="employee-jabatan" name="jabatan" required><option value="">Pilih jabatan</option><option value="HSA">HSA</option><option value="Officer 3">Officer 3</option><option value="Korlap">Korlap</option><option value="Korlap B2B">Korlap B2B</option><option value="Teknisi B2B">Teknisi B2B</option></select></div>
+                <div class="employee-form-field employee-password-field"><label for="employee-password">Password Login</label><input id="employee-password" type="password" name="password" placeholder="Masukkan password" required></div>
+                <div class="employee-modal-actions"><button type="button" class="employee-cancel-button" data-modal-close="employee-modal">Batal</button><button type="submit" class="employee-save-button">Simpan</button></div>
+            </form>
+        </section>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var modal = document.getElementById('employee-modal');
+
+            document.querySelectorAll('[data-modal-open]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    modal.classList.add('is-open');
+                    modal.setAttribute('aria-hidden', 'false');
+                    modal.querySelector('input, select').focus();
+                });
+            });
+
+            document.querySelectorAll('[data-modal-close]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    modal.classList.remove('is-open');
+                    modal.setAttribute('aria-hidden', 'true');
+                });
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    modal.classList.remove('is-open');
+                    modal.setAttribute('aria-hidden', 'true');
+                }
+            });
+
+            @if ($errors->any())
+                modal.classList.add('is-open');
+                modal.setAttribute('aria-hidden', 'false');
+            @endif
+        });
+    </script>
 </body>
 </html>

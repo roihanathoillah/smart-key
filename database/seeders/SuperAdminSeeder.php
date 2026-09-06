@@ -13,10 +13,10 @@ class SuperAdminSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'superadmin@smartkey.com'],
             [
-                'username' => 'Super Admin',
-                'nama_lengkap' => 'Administrator Smart Key',
+                'name' => 'Super Admin',
                 'password' => Hash::make('12345678'),
                 'role' => 'super_admin',
+                'employee_status' => 'Berhasil',
             ]
         );
     }
