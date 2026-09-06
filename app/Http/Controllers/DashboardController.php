@@ -300,30 +300,36 @@ class DashboardController extends Controller
         })->values();
 
         if ($hasCheckinTable) {
-            $todayQuery = DB::table('checkin_checkouts')->whereDate('tanggal', $today);
-            $totalToday = (clone $todayQuery)->count();
-            $successfulToday = (clone $todayQuery)
-                ->whereIn(DB::raw('LOWER(status)'), ['checkin', 'chekin', 'checkout', 'berhasil', 'success'])
-                ->count();
-            $rejectedToday = (clone $todayQuery)
-                ->whereIn(DB::raw('LOWER(status)'), ['ditolak', 'rejected', 'gagal', 'failed'])
-                ->count();
+            $historyColumns = ['jam_checkin', 'jam_checkout', 'status'];
+            if (Schema::hasColumn('checkin_checkouts', 'akses_hasil')) {
+                $historyColumns[] = 'akses_hasil';
+            }
 
             $todayActivities = DB::table('checkin_checkouts')
                 ->whereDate('tanggal', $today)
-                ->get(['jam_checkin', 'jam_checkout']);
+                ->get($historyColumns);
+
+            $totalToday = $todayActivities->count();
+            $successfulToday = $todayActivities->filter(function ($activity) {
+                $result = strtolower((string) ($activity->akses_hasil ?? $activity->status ?? ''));
+
+                return in_array($result, ['berhasil', 'success', 'checkin', 'chekin', 'checkout'], true);
+            })->count();
+            $rejectedToday = $todayActivities->filter(function ($activity) {
+                return in_array(strtolower((string) ($activity->akses_hasil ?? $activity->status ?? '')), ['ditolak', 'rejected', 'gagal', 'failed'], true);
+            })->count();
 
             $chart = $chart->map(function ($item, $index) use ($todayActivities) {
                 $startHour = $index * 4;
-                $endHour = $index === 6 ? 24 : $startHour + 4;
+                $endHour = $startHour + 4;
                 $inRange = function ($time) use ($startHour, $endHour) {
-                    if (! $time) {
+                    if (! $time || $startHour >= 24) {
                         return false;
                     }
 
                     $hour = (int) date('G', strtotime((string) $time));
 
-                    return $hour >= $startHour && $hour < $endHour;
+                    return $hour >= $startHour && $hour < min(24, $endHour);
                 };
 
                 return [
