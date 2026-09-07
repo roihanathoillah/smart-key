@@ -33,8 +33,6 @@
                         <summary>Setting</summary>
                         <div class="sidebar-dropdown-menu">
                             <a href="{{ route('profile.super') }}" class="{{ request()->routeIs('profile.super') ? 'active' : '' }}">Profile</a>
-                            <a href="#">Notification</a>
-                            <a href="#">Security</a>
                         </div>
                     </details>
                 </nav>
@@ -44,15 +42,21 @@
 
         <main class="dashboard-content">
             <header class="dashboard-header">
-                <div>
-                    <h1>Super Admin Dashboard</h1>
-                </div>
-                <div class="profile-card">
-                    <div class="profile-avatar">S</div>
-                    <div>
-                        <p>Super Admin</p>
-                        <strong>Smart Key</strong>
-                    </div>
+                <div class="header-actions">
+                    <a href="{{ route('notifikasi.super') }}" class="notification-button" aria-label="Notifikasi" title="Notifikasi dari Setting">
+                        <span class="bell-icon">🔔</span>
+                        <span class="notification-dot">{{ $notificationCount }}</span>
+                    </a>
+                    <a href="{{ route('profile.super') }}" class="profile-card" aria-label="Edit profile">
+                        <div class="profile-avatar">
+                            @if (!empty($profileUser?->foto_profil))
+                                <img src="{{ asset($profileUser->foto_profil) }}" alt="Foto profil">
+                            @endif
+                        </div>
+                        <div>
+                            <p>{{ $profileUser?->username ?? $profileUser?->nama_lengkap ?? 'Super Admin' }}</p>
+                        </div>
+                    </a>
                 </div>
             </header>
 
@@ -118,49 +122,6 @@
                     </div>
                 </div>
 
-                <div class="activity-card">
-                    <div class="activity-card-header">
-                        <div>
-                            <p>Aktivitas Terbaru</p>
-                            <h2>Latest Activity</h2>
-                        </div>
-                        <span>Lihat semua</span>
-                    </div>
-                    <div class="activity-table-wrapper">
-                        <table class="activity-table">
-                            <thead>
-                                <tr>
-                                    <th>ID Data</th>
-                                    <th>Nama</th>
-                                    <th>Tanggal</th>
-                                    <th>Nama Box</th>
-                                    <th>Jam Chekin</th>
-                                    <th>Jam Checkout</th>
-                                    <th>Lokasi</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse ($activities as $activity)
-                                    <tr>
-                                        <td>{{ $activity['id'] }}</td>
-                                        <td>{{ $activity['name'] }}</td>
-                                        <td>{{ $activity['date'] }}</td>
-                                        <td>{{ $activity['box'] }}</td>
-                                        <td>{{ $activity['checkin'] }}</td>
-                                        <td>{{ $activity['checkout'] }}</td>
-                                        <td>{{ $activity['location'] }}</td>
-                                        <td><span class="status-pill">{{ $activity['status'] }}</span></td>
-                                    </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="8" class="empty-activity">Belum ada aktivitas checkin atau checkout.</td>
-                                </tr>
-                            @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             </section>
         </main>
     </div>

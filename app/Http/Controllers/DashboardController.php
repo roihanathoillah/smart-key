@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -290,9 +291,13 @@ class DashboardController extends Controller
 
     public function superAdmin(Request $request)
     {
+        $profileUser = Auth::user();
         $today = now()->toDateString();
         $hasCheckinTable = Schema::hasTable('checkin_checkouts');
         $hasEmployeeTable = Schema::hasTable('karyawans');
+        $notificationCount = $hasCheckinTable
+            ? DB::table('checkin_checkouts')->count()
+            : 0;
 
         $totalToday = 0;
         $successfulToday = 0;
@@ -352,7 +357,16 @@ class DashboardController extends Controller
             ['label' => 'Akses Ditolak', 'value' => $rejectedToday, 'meta' => 'Akses yang ditolak', 'icon' => '❌', 'accent' => '#ef4444'],
         ];
 
-        $activities = collect();
+        $activities = new LengthAwarePaginator(
+            [],
+            0,
+            4,
+            1,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
 
         if ($hasCheckinTable) {
             $activityQuery = DB::table('checkin_checkouts')
@@ -360,12 +374,21 @@ class DashboardController extends Controller
                     'checkin_checkouts.id',
                     'checkin_checkouts.kode_data',
                     'checkin_checkouts.tanggal',
-                    'checkin_checkouts.smart_box_id',
                     'checkin_checkouts.jam_checkin',
                     'checkin_checkouts.jam_checkout',
                     'checkin_checkouts.lokasi',
-                    'checkin_checkouts.status'
+                    'checkin_checkouts.status',
+                    'districts.nama_district',
+                    'ods.kode_ods',
+                    'ods.nama_ods'
                 )
+                ->leftJoin('districts', 'checkin_checkouts.district_id', '=', 'districts.id')
+                ->leftJoin('ods', 'checkin_checkouts.ods_id', '=', 'ods.id')
+                ->addSelect(DB::raw(
+                    "(SELECT GROUP_CONCAT(DISTINCT jenis_layanan SEPARATOR ',')
+                    FROM layanan_pekerjaans
+                    WHERE layanan_pekerjaans.checkin_checkout_id = checkin_checkouts.id) AS layanan_all"
+                ))
                 ->orderByDesc('checkin_checkouts.id');
 
             if ($hasEmployeeTable) {
@@ -373,23 +396,40 @@ class DashboardController extends Controller
                     ->addSelect('karyawans.nama_lengkap');
             }
 
-            $activities = $activityQuery->limit(20)->get()->map(function ($item) {
+            $activities = $activityQuery->paginate(4, ['*'], 'activity_page')->withQueryString();
+            $activities->setCollection($activities->getCollection()->map(function ($item) {
                 $status = strtolower((string) ($item->status ?? ''));
+                $services = array_filter(array_map('trim', explode(',', (string) ($item->layanan_all ?? ''))));
+                $odc = '-';
+
+                if (!empty($item->kode_ods) && !empty($item->nama_ods)) {
+                    $odc = $item->kode_ods . ' - ' . $item->nama_ods;
+                } elseif (!empty($item->kode_ods)) {
+                    $odc = $item->kode_ods;
+                } elseif (!empty($item->nama_ods)) {
+                    $odc = $item->nama_ods;
+                }
 
                 return [
                     'id' => $item->kode_data ?? ('#' . $item->id),
                     'name' => $item->nama_lengkap ?? '-',
                     'date' => $item->tanggal ? date('d/m/Y', strtotime($item->tanggal)) : '-',
-                    'box' => $item->smart_box_id ? '#' . $item->smart_box_id : '-',
+                    'box' => $odc,
                     'checkin' => $item->jam_checkin ?? '-',
                     'checkout' => $item->jam_checkout ?? '-',
-                    'location' => $item->lokasi ?? '-',
+                    'location' => $item->nama_district ?? ($item->lokasi ?? '-'),
+                    'activity' => [
+                        'S' => in_array('Survey', $services, true),
+                        'D' => in_array('Deployment', $services, true),
+                        'A' => in_array('Assurance', $services, true),
+                        'M' => in_array('Maintenance', $services, true),
+                    ],
                     'status' => $status === 'checkout' ? 'Checkout' : ($status === 'checkin' || $status === 'chekin' ? 'Chekin' : ucfirst($status ?: '-')),
                 ];
-            });
+            }));
         }
 
-        return view('auth.dashboardspradmin', compact('stats', 'activities', 'chart'));
+        return view('auth.dashboardspradmin', compact('stats', 'activities', 'chart', 'profileUser', 'notificationCount'));
     }
 
     /*
@@ -460,7 +500,7 @@ class DashboardController extends Controller
             'id_card' => 'required|string|max:50|unique:karyawans,id_card',
             'nama_lengkap' => 'required|string|max:150',
             'nik' => 'nullable|string|max:16',
-            'jabatan' => 'nullable|in:Teknisi B2C',
+            'jabatan' => 'nullable|in:Teknisi B2C,Teknisi B2B',
             'devisi' => 'nullable|string|max:100',
             'foto' => 'nullable|string|max:255',
         ]);
@@ -532,6 +572,7 @@ class DashboardController extends Controller
 
     public function superAdminEmployees(Request $request)
     {
+        $profileUser = Auth::user();
         $search = $request->query('q');
         $perPage = 8;
 
@@ -583,8 +624,13 @@ class DashboardController extends Controller
                     }
                 }
 
+                $nik = preg_replace('/\D+/', '', (string) $karyawan->nik);
+                $displayId = $nik !== ''
+                    ? substr($nik, -4)
+                    : $karyawan->id_card;
+
                 return [
-                    'id' => '#' . $karyawan->id_card,
+                    'id' => $displayId,
                     'database_id' => $karyawan->id,
                     'name' => $karyawan->nama_lengkap,
                     'calendar' => $karyawan->created_at
@@ -614,7 +660,7 @@ class DashboardController extends Controller
 
         return view(
             'auth.karyawanspradmin',
-            compact('employees', 'search', 'perPage', 'odsOptions')
+            compact('employees', 'search', 'perPage', 'odsOptions', 'profileUser')
         );
     }
 
@@ -704,7 +750,6 @@ class DashboardController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:150',
-            'tanggal_lahir' => 'required|date',
             'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
             'nik' => 'required|string|max:16|unique:karyawans,nik',
             'email' => [
@@ -714,7 +759,7 @@ class DashboardController extends Controller
                 Rule::unique('karyawans', 'email'),
                 Rule::unique('users', 'email'),
             ],
-            'jabatan' => 'required|in:Teknisi B2C',
+            'jabatan' => 'required|in:Teknisi B2C,Teknisi B2B',
             'alamat' => 'required|string|max:255',
             'ods_manual' => 'required|string|max:255',
             'status' => 'required|in:Aktif,Nonaktif',
@@ -726,7 +771,6 @@ class DashboardController extends Controller
 
             $karyawan->id_card = 'EMP-' . $data['nik'];
             $karyawan->nama_lengkap = $data['name'];
-            $karyawan->tanggal_lahir = $data['tanggal_lahir'];
             $karyawan->jenis_kelamin = $data['jenis_kelamin'];
             $karyawan->nik = $data['nik'];
             $karyawan->email = $data['email'];
@@ -805,7 +849,6 @@ class DashboardController extends Controller
 
         $data = $request->validate([
             'name' => 'required|string|max:150',
-            'tanggal_lahir' => 'required|date',
             'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
             'nik' => [
                 'required',
@@ -820,7 +863,7 @@ class DashboardController extends Controller
                 Rule::unique('karyawans', 'email')->ignore($karyawan->id),
                 Rule::unique('users', 'email')->ignore($linkedUser?->id),
             ],
-            'jabatan' => 'required|in:Teknisi B2C',
+            'jabatan' => 'required|in:Teknisi B2C,Teknisi B2B',
             'alamat' => 'required|string|max:255',
             'ods_manual' => 'required|string|max:255',
             'password' => 'nullable|string|min:6',
@@ -829,7 +872,6 @@ class DashboardController extends Controller
         DB::transaction(function () use ($data, $karyawan, $linkedUser) {
             $karyawan->id_card = 'EMP-' . $data['nik'];
             $karyawan->nama_lengkap = $data['name'];
-            $karyawan->tanggal_lahir = $data['tanggal_lahir'];
             $karyawan->jenis_kelamin = $data['jenis_kelamin'];
             $karyawan->nik = $data['nik'];
             $karyawan->email = $data['email'];
@@ -929,6 +971,7 @@ class DashboardController extends Controller
 
     public function superAdminHistory(Request $request)
     {
+        $profileUser = Auth::user();
         $search = $request->query('q');
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
@@ -941,7 +984,22 @@ class DashboardController extends Controller
         if ($historyQuery) {
             if (Schema::hasTable('karyawans')) {
                 $historyQuery->leftJoin('karyawans', 'checkin_checkouts.karyawan_id', '=', 'karyawans.id')
-                    ->addSelect('karyawans.nama_lengkap');
+                    ->addSelect('karyawans.nama_lengkap', 'karyawans.nik');
+            }
+            if (Schema::hasTable('districts')) {
+                $historyQuery->leftJoin('districts', 'checkin_checkouts.district_id', '=', 'districts.id')
+                    ->addSelect('districts.nama_district');
+            }
+            if (Schema::hasTable('ods')) {
+                $historyQuery->leftJoin('ods', 'checkin_checkouts.ods_id', '=', 'ods.id')
+                    ->addSelect('ods.kode_ods', 'ods.nama_ods');
+            }
+            if (Schema::hasTable('layanan_pekerjaans')) {
+                $historyQuery->addSelect(DB::raw(
+                    "(SELECT GROUP_CONCAT(DISTINCT jenis_layanan SEPARATOR ',')
+                    FROM layanan_pekerjaans
+                    WHERE layanan_pekerjaans.checkin_checkout_id = checkin_checkouts.id) AS layanan_all"
+                ));
             }
             if ($search) {
                 $historyQuery->where(function ($builder) use ($search) {
@@ -962,21 +1020,103 @@ class DashboardController extends Controller
             $history = new LengthAwarePaginator([], 0, $perPage, 1, ['path' => $request->url(), 'query' => $request->query()]);
         }
 
-        return view('auth.historyspradmin', compact('history', 'search', 'dateFrom', 'dateTo', 'perPage'));
+        return view('auth.historyspradmin', compact('history', 'search', 'dateFrom', 'dateTo', 'perPage', 'profileUser'));
+    }
+
+    public function superAdminNotifications(Request $request)
+    {
+        $perPage = 8;
+
+        if (!Schema::hasTable('checkin_checkouts')) {
+            $notifications = new LengthAwarePaginator(
+                [],
+                0,
+                $perPage,
+                1,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+        } else {
+            $notifications = DB::table('checkin_checkouts')
+                ->leftJoin('karyawans', 'checkin_checkouts.karyawan_id', '=', 'karyawans.id')
+                ->leftJoin('districts', 'checkin_checkouts.district_id', '=', 'districts.id')
+                ->leftJoin('ods', 'checkin_checkouts.ods_id', '=', 'ods.id')
+                ->select(
+                    'checkin_checkouts.id',
+                    'checkin_checkouts.kode_data',
+                    'checkin_checkouts.tanggal',
+                    'checkin_checkouts.jam_checkin',
+                    'checkin_checkouts.jam_checkout',
+                    'checkin_checkouts.status',
+                    'karyawans.nama_lengkap',
+                    'districts.nama_district',
+                    'ods.kode_ods',
+                    'ods.nama_ods'
+                )
+                ->orderByDesc('checkin_checkouts.id')
+                ->paginate($perPage)
+                ->withQueryString();
+
+            $notifications->setCollection($notifications->getCollection()->map(function ($item) {
+                $status = strtolower((string) ($item->status ?? ''));
+                $isCheckout = $status === 'checkout';
+                $odc = '-';
+
+                if (!empty($item->kode_ods) && !empty($item->nama_ods)) {
+                    $odc = $item->kode_ods . ' - ' . $item->nama_ods;
+                } elseif (!empty($item->kode_ods)) {
+                    $odc = $item->kode_ods;
+                } elseif (!empty($item->nama_ods)) {
+                    $odc = $item->nama_ods;
+                }
+
+                return [
+                    'title' => $isCheckout ? 'Admin melakukan check-out' : 'Admin melakukan check-in',
+                    'name' => $item->nama_lengkap ?? 'Admin tidak dikenal',
+                    'id' => $item->kode_data ?? ('#' . $item->id),
+                    'date' => $item->tanggal ? date('d/m/Y', strtotime($item->tanggal)) : '-',
+                    'time' => $isCheckout ? ($item->jam_checkout ?? '-') : ($item->jam_checkin ?? '-'),
+                    'odc' => $odc,
+                    'district' => $item->nama_district ?? '-',
+                    'type' => $isCheckout ? 'Checkout' : 'Checkin',
+                    'tone' => $isCheckout ? 'checkout' : 'checkin',
+                ];
+            }));
+        }
+
+        return view('auth.notifikasispradmin', compact('notifications', 'perPage'));
     }
 
     private function mapCheckinActivity(object $item): array
     {
         $status = strtolower((string) ($item->status ?? ''));
+        $odc = '-';
+        $services = array_filter(array_map('trim', explode(',', (string) ($item->layanan_all ?? ''))));
+        $nik = preg_replace('/\D+/', '', (string) ($item->nik ?? ''));
+        $legacyId = preg_replace('/^#/', '', (string) ($item->kode_data ?? $item->id));
+        $displayId = $nik !== '' ? substr($nik, -4) : $legacyId;
+
+        if (!empty($item->kode_ods) && !empty($item->nama_ods)) {
+            $odc = $item->kode_ods . ' - ' . $item->nama_ods;
+        } elseif (!empty($item->kode_ods)) {
+            $odc = $item->kode_ods;
+        } elseif (!empty($item->nama_ods)) {
+            $odc = $item->nama_ods;
+        }
 
         return [
-            'id' => $item->kode_data ?? ('#' . $item->id),
+            'id' => $displayId,
             'name' => $item->nama_lengkap ?? '-',
             'date' => $item->tanggal ? date('d/m/Y', strtotime($item->tanggal)) : '-',
-            'box' => $item->smart_box_id ? '#' . $item->smart_box_id : '-',
+            'box' => $odc,
             'checkin' => $item->jam_checkin ?? '-',
             'checkout' => $item->jam_checkout ?? '-',
-            'location' => $item->lokasi ?? '-',
+            'location' => $item->nama_district ?? ($item->lokasi ?? '-'),
+            'activity' => [
+                'S' => in_array('Survey', $services, true),
+                'D' => in_array('Deployment', $services, true),
+                'A' => in_array('Assurance', $services, true),
+                'M' => in_array('Maintenance', $services, true),
+            ],
             'status' => $status === 'checkout' ? 'Checkout' : ($status === 'checkin' || $status === 'chekin' ? 'Chekin' : ucfirst($status ?: '-')),
         ];
     }
@@ -1669,12 +1809,10 @@ class DashboardController extends Controller
                 $item['id'],
                 $item['name'],
                 $item['date'],
-                $item['box'],
                 $item['checkin'],
                 $item['checkout'],
-                $item['district'],
                 $item['ods'],
-                $item['location'],
+                $item['district'],
                 $item['status'],
             ];
 
@@ -1780,12 +1918,10 @@ class DashboardController extends Controller
             'ID DATA',
             'NAMA',
             'TANGGAL',
-            'NAMA BOX',
             'JAM CHEKIN',
             'JAM CHECKOUT',
-            'DISTRIK',
-            'ODS',
-            'LOKASI',
+            'ODC',
+            'DISTRICT',
             'STATUS',
         ];
 
@@ -2126,17 +2262,66 @@ class DashboardController extends Controller
         $user = Auth::user();
 
         $profile = [
-            'nama' => $user?->name ?? 'Super Admin',
-            'nama_lengkap' => $user?->name ?? 'Administrator Smart Key',
+            'nama' => $user?->username ?? 'Super Admin',
+            'nama_lengkap' => $user?->nama_lengkap ?? 'Administrator Smart Key',
             'email' => $user?->email ?? 'admin@smartkey.com',
-            'nomor_hp' => '081234567890',
-            'role' => 'Super Admin',
+            'nomor_hp' => $user?->nomor_hp ?? '-',
+            'role' => $user?->role ?? 'Super Admin',
+            'foto_profil' => $user?->foto_profil,
         ];
 
         return view(
             'auth.profilespradmin',
             ['user' => $profile]
         );
+    }
+
+    public function updateSuperAdminProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        $data = $request->validate([
+            'username' => 'required|string|max:150',
+            'nama_lengkap' => 'required|string|max:150',
+            'email' => 'required|email|max:150|unique:users,email,' . $user->id,
+            'nomor_hp' => 'required|string|max:30',
+            'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'current_password' => 'nullable|string',
+            'password' => 'nullable|string|min:6|confirmed',
+        ]);
+
+        if (!empty($data['password']) && !Hash::check($data['current_password'] ?? '', $user->password)) {
+            return back()->withErrors([
+                'current_password' => 'Kata sandi saat ini tidak sesuai.',
+            ])->withInput();
+        }
+
+        $user->username = $data['username'];
+        $user->nama_lengkap = $data['nama_lengkap'];
+        $user->email = $data['email'];
+        $user->nomor_hp = $data['nomor_hp'];
+
+        if ($request->hasFile('foto_profil')) {
+            $profileDirectory = public_path('images/profile');
+
+            if (!is_dir($profileDirectory)) {
+                mkdir($profileDirectory, 0755, true);
+            }
+
+            $profileFilename = Str::uuid() . '.' . $request->file('foto_profil')->getClientOriginalExtension();
+            $request->file('foto_profil')->move($profileDirectory, $profileFilename);
+            $user->foto_profil = 'images/profile/' . $profileFilename;
+        }
+
+        if (!empty($data['password'])) {
+            $user->password = $data['password'];
+        }
+
+        $user->save();
+
+        return redirect()
+            ->route('profile.super')
+            ->with('success', 'Profil Super Admin berhasil diperbarui.');
     }
 
     /*

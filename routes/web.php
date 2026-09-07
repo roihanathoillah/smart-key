@@ -100,7 +100,11 @@ Route::middleware('superadmin')->prefix('super-admin')->group(function () {
 
     Route::get('/history', [DashboardController::class, 'superAdminHistory'])
         ->name('history.super');
+    Route::get('/notifikasi', [DashboardController::class, 'superAdminNotifications'])
+        ->name('notifikasi.super');
 
     Route::get('/profile', [DashboardController::class, 'superAdminProfile'])
         ->name('profile.super');
+    Route::put('/profile', [DashboardController::class, 'updateSuperAdminProfile'])
+        ->name('profile.super.update');
 });

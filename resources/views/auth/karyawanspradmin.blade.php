@@ -261,25 +261,29 @@
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            gap: 10px;
+            gap: 6px;
             white-space: nowrap;
-            padding-right: 18px;
+            padding-right: 0;
         }
 
         .activity-table th:last-child,
         .activity-table td:last-child {
-            min-width: 285px;
-            padding-left: 18px;
-            padding-right: 26px;
+            min-width: 220px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .dashboard-page:has(.employee-row-actions) .activity-table {
+            min-width: 0;
         }
 
         .employee-action-button {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 76px;
-            height: 34px;
-            padding: 0 14px;
+            min-width: 58px;
+            height: 32px;
+            padding: 0 8px;
             border-radius: 9px;
             font-family: inherit;
             font-size: 12px;
@@ -381,7 +385,7 @@
 
             .activity-table th:last-child,
             .activity-table td:last-child {
-                min-width: 250px;
+                min-width: 210px;
                 padding-right: 16px;
             }
         }
@@ -454,14 +458,6 @@
                                 Profile
                             </a>
 
-                            <a href="#">
-                                Notification
-                            </a>
-
-                            <a href="#">
-                                Security
-                            </a>
-
                         </div>
 
                     </details>
@@ -516,12 +512,7 @@
 
                 <div class="header-actions">
 
-                    <button
-                        type="button"
-                        class="notification-button"
-                        aria-haspopup="true"
-                        aria-expanded="false"
-                    >
+                    <button type="button" class="notification-button" aria-haspopup="true" aria-expanded="false">
 
                         <span class="bell-icon">
                             🔔
@@ -533,18 +524,14 @@
 
                     </button>
 
-
-                    <div class="profile-card">
-
+                    <a href="{{ route('profile.super') }}" class="profile-card" aria-label="Edit profile">
                         <div class="profile-avatar">
-                            S
+                            @if (!empty($profileUser?->foto_profil))
+                                <img src="{{ asset($profileUser->foto_profil) }}" alt="Foto profil">
+                            @endif
                         </div>
-
-                        <strong>
-                            Super Admin
-                        </strong>
-
-                    </div>
+                        <div><p>{{ $profileUser?->username ?? $profileUser?->nama_lengkap ?? 'Super Admin' }}</p></div>
+                    </a>
 
                 </div>
 
@@ -588,7 +575,7 @@
                                 </th>
 
                                 <th>
-                                    ODS
+                                    District
                                 </th>
 
                                 <th>
@@ -714,8 +701,6 @@
                                                 data-status-url="{{ isset($employee['database_id']) ? route('karyawan.super.status', $employee['database_id']) : '' }}"
                                                 data-id="{{ $employee['id'] ?? '-' }}"
                                                 data-name="{{ $employee['name'] ?? '-' }}"
-                                                data-birth="{{ $employee['birth_date'] ?? ($employee['tanggal_lahir'] ?? '-') }}"
-                                                data-birth-raw="{{ $employee['birth_date_raw'] ?? '' }}"
                                                 data-gender="{{ $employee['gender'] ?? ($employee['jenis_kelamin'] ?? '-') }}"
                                                 data-nik="{{ $employee['nik'] ?? '-' }}"
                                                 data-email="{{ $employee['email'] ?? '-' }}"
@@ -734,7 +719,6 @@
                                                 data-edit-open
                                                 data-update-url="{{ isset($employee['database_id']) ? route('karyawan.super.update', $employee['database_id']) : '' }}"
                                                 data-name="{{ $employee['name'] ?? '' }}"
-                                                data-birth-raw="{{ $employee['birth_date_raw'] ?? '' }}"
                                                 data-gender="{{ $employee['gender'] ?? '' }}"
                                                 data-nik="{{ $employee['nik'] ?? '' }}"
                                                 data-email="{{ $employee['email'] ?? '' }}"
@@ -906,11 +890,6 @@
                     </div>
 
                     <div class="employee-detail-item">
-                        <span>Tanggal Lahir</span>
-                        <strong id="detail-birth">-</strong>
-                    </div>
-
-                    <div class="employee-detail-item">
                         <span>Jenis Kelamin</span>
                         <strong id="detail-gender">-</strong>
                     </div>
@@ -936,7 +915,7 @@
                     </div>
 
                     <div class="employee-detail-item">
-                        <span>ODS</span>
+                        <span>District</span>
                         <strong id="detail-ods">-</strong>
                     </div>
 
@@ -1050,7 +1029,7 @@
                 id="employee-edit-form"
                 method="POST"
                 action=""
-                class="employee-modal-form"
+                class="employee-modal-form employee-edit-form"
             >
                 @csrf
                 @method('PUT')
@@ -1071,11 +1050,6 @@
                 </div>
 
                 <div class="employee-form-field">
-                    <label for="edit-employee-tanggal">Tanggal Lahir</label>
-                    <input id="edit-employee-tanggal" type="date" name="tanggal_lahir" required>
-                </div>
-
-                <div class="employee-form-field">
                     <label for="edit-employee-gender">Jenis Kelamin</label>
                     <select id="edit-employee-gender" name="jenis_kelamin" required>
                         <option value="Laki-laki">Laki-laki</option>
@@ -1089,8 +1063,8 @@
                 </div>
 
                 <div class="employee-form-field">
-                    <label for="edit-employee-ods">ODS</label>
-                    <input id="edit-employee-ods" type="text" name="ods_manual" placeholder="Masukkan ODS (kode atau nama)" required>
+                    <label for="edit-employee-ods">District</label>
+                    <input id="edit-employee-ods" type="text" name="ods_manual" placeholder="Masukkan district (kode atau nama)" required>
                 </div>
 
                 <div class="employee-form-field">
@@ -1102,6 +1076,7 @@
                     <label for="edit-employee-jabatan">Jabatan</label>
                     <select id="edit-employee-jabatan" name="jabatan" required>
                         <option value="Teknisi B2C">Teknisi B2C</option>
+                        <option value="Teknisi B2B">Teknisi B2B</option>
                     </select>
                 </div>
 
@@ -1201,18 +1176,17 @@
                 <h2 id="employee-modal-title">Form Tambah Karyawan</h2>
                 <button type="button" class="employee-modal-close" data-modal-close="employee-modal" aria-label="Tutup">&times;</button>
             </div>
-            <form method="post" action="{{ route('karyawan.super.store') }}" class="employee-modal-form">
+            <form method="post" action="{{ route('karyawan.super.store') }}" class="employee-modal-form employee-add-form">
                 @csrf
-                <div class="employee-form-field"><label for="employee-name">Nama</label><input id="employee-name" type="text" name="name" placeholder="Masukkan nama" value="{{ old('name') }}" required></div>
-                <div class="employee-form-field"><label for="employee-alamat">Alamat</label><input id="employee-alamat" type="text" name="alamat" placeholder="Masukkan alamat" value="{{ old('alamat') }}" required></div>
-                <div class="employee-form-field"><label for="employee-tanggal">Tanggal Lahir</label><input id="employee-tanggal" type="date" name="tanggal_lahir" value="{{ old('tanggal_lahir') }}" required></div>
-                <div class="employee-form-field"><label for="employee-gender">Jenis Kelamin</label><select id="employee-gender" name="jenis_kelamin" required><option value="" disabled hidden {{ old('jenis_kelamin') ? '' : 'selected' }}>Pilih jenis kelamin</option><option value="Laki-laki" {{ old('jenis_kelamin') === 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option><option value="Perempuan" {{ old('jenis_kelamin') === 'Perempuan' ? 'selected' : '' }}>Perempuan</option></select></div>
-                <div class="employee-form-field"><label for="employee-nik">NIK</label><input id="employee-nik" type="text" name="nik" placeholder="Masukkan NIK" value="{{ old('nik') }}" required maxlength="16"></div>
-                <div class="employee-form-field"><label for="employee-ods">ODS</label><input id="employee-ods" type="text" name="ods_manual" placeholder="Masukkan ODS (kode atau nama)" value="{{ old('ods_manual') }}" required></div>
-                <div class="employee-form-field"><label for="employee-email">Email</label><input id="employee-email" type="email" name="email" placeholder="Masukkan email" value="{{ old('email') }}" required></div>
-                <div class="employee-form-field"><label for="employee-status">Status</label><select id="employee-status" name="status" required><option value="">Pilih status</option><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select></div>
-                <div class="employee-form-field"><label for="employee-jabatan">Jabatan</label><select id="employee-jabatan" name="jabatan" required><option value="Teknisi B2C">Teknisi B2C</option></select></div>
-                <div class="employee-form-field employee-password-field"><label for="employee-password">Password Login</label><input id="employee-password" type="password" name="password" placeholder="Masukkan password" required></div>
+                <div class="employee-form-field employee-add-name-field"><label for="employee-name">Nama</label><input id="employee-name" type="text" name="name" placeholder="Masukkan nama" value="{{ old('name') }}" required></div>
+                <div class="employee-form-field employee-add-address-field"><label for="employee-alamat">Alamat</label><input id="employee-alamat" type="text" name="alamat" placeholder="Masukkan alamat" value="{{ old('alamat') }}" required></div>
+                <div class="employee-form-field employee-add-gender-field"><label for="employee-gender">Jenis Kelamin</label><select id="employee-gender" name="jenis_kelamin" required><option value="" disabled hidden {{ old('jenis_kelamin') ? '' : 'selected' }}>Pilih jenis kelamin</option><option value="Laki-laki" {{ old('jenis_kelamin') === 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option><option value="Perempuan" {{ old('jenis_kelamin') === 'Perempuan' ? 'selected' : '' }}>Perempuan</option></select></div>
+                <div class="employee-form-field employee-add-nik-field"><label for="employee-nik">NIK</label><input id="employee-nik" type="text" name="nik" placeholder="Masukkan NIK" value="{{ old('nik') }}" required maxlength="16"></div>
+                <div class="employee-form-field employee-add-email-field"><label for="employee-email">Email</label><input id="employee-email" type="email" name="email" placeholder="Masukkan email" value="{{ old('email') }}" required></div>
+                <div class="employee-form-field employee-add-position-field"><label for="employee-jabatan">Jabatan</label><select id="employee-jabatan" name="jabatan" required><option value="Teknisi B2C">Teknisi B2C</option><option value="Teknisi B2B">Teknisi B2B</option></select></div>
+                <div class="employee-form-field employee-add-odc-field"><label for="employee-ods">District</label><input id="employee-ods" type="text" name="ods_manual" placeholder="Masukkan district (kode atau nama)" value="{{ old('ods_manual') }}" required></div>
+                <div class="employee-form-field employee-add-status-field"><label for="employee-status">Status</label><select id="employee-status" name="status" required><option value="">Pilih status</option><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select></div>
+                <div class="employee-form-field employee-password-field employee-add-password-field"><label for="employee-password">Password Login</label><input id="employee-password" type="password" name="password" placeholder="Masukkan password" required></div>
                 <div class="employee-modal-actions"><button type="button" class="employee-cancel-button" data-modal-close="employee-modal">Batal</button><button type="submit" class="employee-save-button">Simpan</button></div>
             </form>
         </section>
@@ -1253,7 +1227,6 @@
                 button.addEventListener('click', function () {
                     setDetailValue('detail-id', button.dataset.id);
                     setDetailValue('detail-name', button.dataset.name);
-                    setDetailValue('detail-birth', button.dataset.birth);
                     setDetailValue('detail-gender', button.dataset.gender);
                     setDetailValue('detail-nik', button.dataset.nik);
                     setDetailValue('detail-email', button.dataset.email);
@@ -1359,9 +1332,6 @@
 
                     document.getElementById('edit-employee-alamat').value =
                         button.dataset.address === '-' ? '' : (button.dataset.address || '');
-
-                    document.getElementById('edit-employee-tanggal').value =
-                        button.dataset.birthRaw || '';
 
                     document.getElementById('edit-employee-gender').value =
                         button.dataset.gender === '-' ? 'Laki-laki' : (button.dataset.gender || 'Laki-laki');
