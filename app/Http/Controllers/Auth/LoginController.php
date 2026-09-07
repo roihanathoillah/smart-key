@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Karyawan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -39,6 +40,29 @@ class LoginController extends Controller
             // ADMIN
             // =========================
             if ($user->role === 'admin') {
+                /*
+                 * Karyawan yang dibuat oleh Super Admin mempunyai
+                 * email yang sama pada tabel users dan karyawans.
+                 *
+                 * Jika pasangan data karyawan ditemukan, hanya status
+                 * AKTIF yang boleh masuk ke Dashboard Admin.
+                 *
+                 * Akun admin lama yang belum mempunyai pasangan data
+                 * karyawan tetap dipertahankan agar sistem lama tidak rusak.
+                 */
+                $karyawan = Karyawan::where('email', $user->email)->first();
+
+                if ($karyawan && strtolower((string) $karyawan->status) !== 'aktif') {
+                    Auth::logout();
+
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+
+                    return back()->withErrors([
+                        'email' => 'Akun karyawan sedang nonaktif. Silakan hubungi Super Admin.',
+                    ])->withInput($request->only('email'));
+                }
+
                 return redirect()->route('dashboard');
             }
 
@@ -53,13 +77,19 @@ class LoginController extends Controller
                 'korlap_b2b',
                 'teknisi_b2b',
             ])) {
-                /*
-                 * Untuk sementara seluruh role flowchart
-                 * diarahkan ke Dashboard.
-                 *
-                 * Hak akses masing-masing role akan
-                 * dibedakan pada tahap middleware dan routes.
-                 */
+                $karyawan = Karyawan::where('email', $user->email)->first();
+
+                if ($karyawan && strtolower((string) $karyawan->status) !== 'aktif') {
+                    Auth::logout();
+
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+
+                    return back()->withErrors([
+                        'email' => 'Akun karyawan sedang nonaktif. Silakan hubungi Super Admin.',
+                    ])->withInput($request->only('email'));
+                }
+
                 return redirect()->route('dashboard');
             }
 

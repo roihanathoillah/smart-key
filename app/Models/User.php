@@ -10,7 +10,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'employee_status', 'alamat', 'tanggal_lahir', 'jenis_kelamin', 'nik', 'ods', 'status', 'jabatan'])]
+#[Fillable([
+    'username',
+    'nama_lengkap',
+    'email',
+    'password',
+    'nomor_hp',
+    'foto_profil',
+    'role',
+])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -28,5 +36,25 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Compatibility untuk kode lama yang masih memanggil $user->name.
+     */
+    public function getNameAttribute(): string
+    {
+        return (string) (
+            $this->attributes['nama_lengkap']
+            ?? $this->attributes['username']
+            ?? ''
+        );
+    }
+
+    /**
+     * Hubungkan akun login dengan profil karyawan menggunakan email.
+     */
+    public function karyawan()
+    {
+        return $this->hasOne(Karyawan::class, 'email', 'email');
     }
 }

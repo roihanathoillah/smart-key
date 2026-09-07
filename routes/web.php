@@ -7,9 +7,13 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LayananPekerjaanController;
 
+// ====================
+// LANDING PAGE
+// ====================
+
 Route::get('/', function () {
-    return redirect('/login');
-});
+    return view('landing');
+})->name('landing');
 
 // ====================
 // AUTH
@@ -17,6 +21,9 @@ Route::get('/', function () {
 
 Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
+
+Route::post('/logout', [LoginController::class, 'logout'])
+    ->name('logout');
 
 Route::get('/register', [RegisterController::class, 'show'])->name('register');
 Route::post('/register', [RegisterController::class, 'store']);
@@ -26,32 +33,35 @@ Route::post('/register', [RegisterController::class, 'store']);
 // ADMIN
 // ====================
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-Route::get('/karyawan', [DashboardController::class, 'employees'])->name('karyawan');
+Route::middleware('auth')->group(function () {
 
-Route::post('/karyawan', [DashboardController::class, 'storeEmployee'])
-    ->name('karyawan.store');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/karyawan', [DashboardController::class, 'employees'])->name('karyawan');
 
-Route::put('/karyawan/{id}', [DashboardController::class, 'updateEmployee'])
-    ->name('karyawan.update');
+    Route::post('/karyawan', [DashboardController::class, 'storeEmployee'])
+        ->name('karyawan.store');
 
-Route::delete('/karyawan/{id}', [DashboardController::class, 'deleteEmployee'])
-    ->name('karyawan.delete');
+    Route::put('/karyawan/{id}', [DashboardController::class, 'updateEmployee'])
+        ->name('karyawan.update');
 
-Route::get('/history', [DashboardController::class, 'history'])->name('history');
+    Route::delete('/karyawan/{id}', [DashboardController::class, 'deleteEmployee'])
+        ->name('karyawan.delete');
 
-Route::get('/history/export', [DashboardController::class, 'historyExport'])->name('history.export');
+    Route::get('/history', [DashboardController::class, 'history'])->name('history');
 
-Route::get('/profile', [DashboardController::class, 'profile'])->name('profile');
+    Route::get('/history/export', [DashboardController::class, 'historyExport'])->name('history.export');
 
-Route::get('/checkin', [DashboardController::class, 'checkin'])->name('checkin');
+    Route::get('/profile', [DashboardController::class, 'profile'])->name('profile');
 
-Route::post('/checkin', [DashboardController::class, 'storeCheckin'])
-    ->name('checkin.store');
+    Route::get('/checkin', [DashboardController::class, 'checkin'])->name('checkin');
 
- Route::post('/checkin/checkout', [DashboardController::class, 'storeCheckout'])
-    ->name('checkin.checkout');
-     
+    Route::post('/checkin', [DashboardController::class, 'storeCheckin'])
+        ->name('checkin.store');
+
+    Route::post('/checkin/checkout', [DashboardController::class, 'storeCheckout'])
+        ->name('checkin.checkout');
+});
+
 
 // ====================
 // SUPER ADMIN
@@ -68,6 +78,14 @@ Route::middleware('superadmin')->prefix('super-admin')->group(function () {
     Route::post('/karyawan', [DashboardController::class, 'storeSuperAdminEmployee'])
         ->name('karyawan.super.store');
 
+    // Edit data karyawan
+    Route::put('/karyawan/{id}', [DashboardController::class, 'updateSuperAdminEmployee'])
+        ->name('karyawan.super.update');
+
+    // Hapus data karyawan
+    Route::delete('/karyawan/{id}', [DashboardController::class, 'deleteSuperAdminEmployee'])
+        ->name('karyawan.super.delete');
+
     // Approve karyawan
     Route::post('/karyawan/{id}/approve', [DashboardController::class, 'approveEmployee'])
         ->name('karyawan.approve');
@@ -75,6 +93,10 @@ Route::middleware('superadmin')->prefix('super-admin')->group(function () {
     // Tolak karyawan
     Route::post('/karyawan/{id}/reject', [DashboardController::class, 'rejectEmployee'])
         ->name('karyawan.reject');
+
+    // Aktifkan / Nonaktifkan karyawan dari modal Detail
+    Route::patch('/karyawan/{id}/status', [DashboardController::class, 'updateSuperAdminEmployeeStatus'])
+        ->name('karyawan.super.status');
 
     Route::get('/history', [DashboardController::class, 'superAdminHistory'])
         ->name('history.super');

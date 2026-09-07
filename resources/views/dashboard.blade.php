@@ -634,6 +634,10 @@
                                 pointBorderColor: '#2563eb',
                                 pointBorderWidth: 2,
 
+                                // Chekin tetap garis utama.
+                                // Checkout diberi bentuk berbeda saat berada di titik sama.
+                                order: 1,
+
                                 fill: false
                             },
 
@@ -644,16 +648,25 @@
                                 borderColor: '#16a34a',
                                 backgroundColor: '#16a34a',
 
-                                borderWidth: 2.5,
+                                // Dibuat putus-putus agar tetap terlihat saat
+                                // nilainya sama persis dengan garis Chekin.
+                                borderDash: [8, 6],
+                                borderWidth: 3,
 
                                 tension: 0,
 
-                                pointRadius: 4,
-                                pointHoverRadius: 6,
+                                // Titik Checkout dibuat lebih besar dan hijau penuh
+                                // supaya tidak tertutup titik Chekin ketika overlap.
+                                pointRadius: 7,
+                                pointHoverRadius: 9,
+                                pointStyle: 'rectRot',
 
-                                pointBackgroundColor: '#ffffff',
-                                pointBorderColor: '#16a34a',
+                                pointBackgroundColor: '#16a34a',
+                                pointBorderColor: '#ffffff',
                                 pointBorderWidth: 2,
+
+                                // Pastikan dataset Checkout digambar di atas Chekin.
+                                order: 0,
 
                                 fill: false
                             }

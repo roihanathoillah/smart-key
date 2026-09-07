@@ -109,6 +109,45 @@
 
 
         /* =========================================================
+           STATUS RFID / IOT
+           ========================================================= */
+
+        .rfid-status-panel {
+            margin-bottom: 16px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1e40af;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .rfid-status-panel strong {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 14px;
+        }
+
+        .rfid-status-panel.ready {
+            border-color: #bbf7d0;
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        .rfid-status-panel.error {
+            border-color: #fecaca;
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .employee-status.waiting {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+
+        /* =========================================================
            PROFIL KARYAWAN
            ========================================================= */
 
@@ -357,7 +396,6 @@
             display: none;
         }
 
-        #submit-checkin-button,
         #checkout-form button[type="submit"] {
             min-width: 210px;
             min-height: 48px;
@@ -369,16 +407,7 @@
             cursor: pointer;
             box-shadow: none;
         }
-
-        #submit-checkin-button {
-            background: #2563eb;
-        }
-
-        #submit-checkin-button:hover:not(:disabled) {
-            background: #1d4ed8;
-        }
-
-        #checkout-form button[type="submit"] {
+#checkout-form button[type="submit"] {
             background: #16a34a;
         }
 
@@ -386,7 +415,6 @@
             background: #15803d;
         }
 
-        #submit-checkin-button:disabled,
         #checkout-form button[type="submit"]:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -397,7 +425,6 @@
                 grid-template-columns: 1fr;
             }
 
-            #submit-checkin-button,
             #checkout-form button[type="submit"] {
                 width: 100%;
                 min-width: 0;
@@ -592,6 +619,56 @@
 
         <section class="dashboard-grid">
 
+            {{-- =====================================================
+                 NOTIFIKASI / VALIDASI
+                 ===================================================== --}}
+            @if(session('success'))
+                <div style="margin-bottom:16px;padding:14px 16px;border-radius:10px;background:#dcfce7;color:#166534;font-size:14px;font-weight:600;">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div style="margin-bottom:16px;padding:14px 16px;border-radius:10px;background:#fee2e2;color:#b91c1c;font-size:14px;font-weight:600;">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div style="margin-bottom:16px;padding:14px 16px;border-radius:10px;background:#fee2e2;color:#b91c1c;font-size:14px;">
+                    <strong>Data belum bisa diproses:</strong>
+                    <ul style="margin:8px 0 0 18px;padding:0;">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+
+            <!-- =====================================================
+                 STATUS RFID / IOT
+                 ===================================================== -->
+
+            <div class="rfid-status-panel
+                {{ ($rfidState ?? 'waiting') === 'ready' ? 'ready' : '' }}
+                {{ in_array(($rfidState ?? 'waiting'), ['mismatch', 'not_found']) ? 'error' : '' }}
+            ">
+                <strong>
+                    @if(($rfidState ?? 'waiting') === 'ready')
+                        ID Card Terverifikasi
+                    @elseif(($rfidState ?? 'waiting') === 'mismatch')
+                        ID Card Ditolak
+                    @elseif(($rfidState ?? 'waiting') === 'not_found')
+                        ID Card Tidak Ditemukan
+                    @else
+                        Menunggu ID Card
+                    @endif
+                </strong>
+
+                {{ $rfidMessage ?? 'Menunggu pembacaan RFID.' }}
+            </div>
+
 
             <!-- =====================================================
                  SEARCH KARYAWAN
@@ -610,7 +687,7 @@
                         <input
                             type="text"
                             name="q"
-                            placeholder="Search by employee name / RFID"
+                            placeholder="Simulasi RFID: masukkan ID Card / nama karyawan"
                             value="{{ request('q') }}"
                         >
 
@@ -769,7 +846,7 @@
                                     <div class="employee-profile-separator">:</div>
                                     <div class="employee-profile-value">
 
-                                        <span class="employee-status berhasil">
+                                        <span class="employee-status {{ empty($employee['database_id']) ? 'waiting' : 'berhasil' }}">
                                             {{ $employee['status'] ?? '-' }}
                                         </span>
 
@@ -791,34 +868,36 @@
                          ID CARD BADGE
                          ================================================= -->
 
-                    <div class="checkin-badge">
+                    @if(($rfidState ?? 'waiting') === 'ready' && !empty($employee['database_id']))
+                        <div class="checkin-badge">
 
-                        <div class="badge">
+                            <div class="badge">
 
-                            ID Card Terbaca
+                                ID Card Terbaca
 
-                            <br>
+                                <br>
 
-                            <small>
-                                Top ID Card Berhasil
-                            </small>
+                                <small>
+                                    ID Card Berhasil Diverifikasi
+                                </small>
+
+                            </div>
+
+
+                            <div class="badge-meta">
+
+                                Waktu Scan
+
+                                <br>
+
+                                <small>
+                                    {{ now()->format('d/m/Y H:i') }}
+                                </small>
+
+                            </div>
 
                         </div>
-
-
-                        <div class="badge-meta">
-
-                            Waktu Scan
-
-                            <br>
-
-                            <small>
-                                {{ now()->format('d/m/Y H:i') }}
-                            </small>
-
-                        </div>
-
-                    </div>
+                    @endif
 
                 </div>
 
@@ -1184,69 +1263,6 @@
 
 
                     <!-- =================================================
-                         FORM SIMPAN CHECKIN
-                         ================================================= -->
-
-                    <form
-                        id="checkin-form"
-                        method="POST"
-                        action="{{ route('checkin.store') }}"
-                        style="display: inline;"
-                    >
-
-                        @csrf
-
-
-                        <!-- ID KARYAWAN -->
-
-                        <input
-                            type="hidden"
-                            name="karyawan_id"
-                            value="{{ $employee['database_id'] }}"
-                        >
-
-
-                        <!-- ID SMART BOX -->
-
-                        <input
-                            type="hidden"
-                            name="box_id"
-                            value="{{ $selectedBoxId }}"
-                        >
-
-
-                        <!-- DISTRICT -->
-
-                        <input
-                            type="hidden"
-                            name="district"
-                            value="{{ $selectedDistrict }}"
-                        >
-
-
-                        <!-- CONTAINER FOR DYNAMIC SERVICE HIDDEN INPUTS -->
-                        <div id="dynamic-service-inputs"></div>
-
-
-                        <button
-                            type="submit"
-                            class="btn-red"
-                            id="submit-checkin-button"
-
-                            @if(!$employee['database_id'] || !$selectedBoxId || !$selectedDistrict)
-                                disabled
-                            @endif
-                        >
-
-                            SIMPAN (CHEKIN)
-
-                        </button>
-
-                    </form>
-
-
-
-                    <!-- =================================================
                          FORM CHECKOUT
                          ================================================= -->
 
@@ -1265,7 +1281,7 @@
                         <input
                             type="hidden"
                             name="karyawan_id"
-                            value="{{ $employee['database_id'] }}"
+                            value="{{ $employee['database_id'] ?? '' }}"
                         >
 
 
@@ -1274,7 +1290,7 @@
                         <input
                             type="hidden"
                             name="box_id"
-                            value="{{ $selectedBoxId }}"
+                            value="{{ $selectedBoxId ?? '' }}"
                         >
 
 
@@ -1283,7 +1299,7 @@
                         <input
                             type="hidden"
                             name="district"
-                            value="{{ $selectedDistrict }}"
+                            value="{{ $selectedDistrict ?? '' }}"
                         >
 
 
@@ -1291,7 +1307,7 @@
                             type="submit"
                             class="btn-red"
 
-                            @if(!$employee['database_id'] || !$selectedBoxId || !$selectedDistrict)
+                            @if(empty($employee['database_id']) || empty($selectedBoxId) || empty($selectedDistrict))
                                 disabled
                             @endif
                         >
@@ -1328,24 +1344,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const visibleDistrictInput =
         document.getElementById('district');
-
-    const checkinForm =
-        document.getElementById('checkin-form');
-
-    const checkoutForm =
+const checkoutForm =
         document.getElementById('checkout-form');
-
-    const submitCheckinButton =
-        document.getElementById('submit-checkin-button');
-
-    const serviceDescriptions =
+const serviceDescriptions =
         document.querySelectorAll('.service-description');
-
-    const dynamicServiceInputs =
-        document.getElementById('dynamic-service-inputs');
-
-
-    /*
+/*
     |--------------------------------------------------------------------------
     | HELPER UPDATE HIDDEN INPUT
     |--------------------------------------------------------------------------
@@ -1385,20 +1388,7 @@ document.addEventListener('DOMContentLoaded', function () {
             visibleDistrictInput
                 ? visibleDistrictInput.value.trim()
                 : '';
-
-        setHiddenValue(
-            checkinForm,
-            'box_id',
-            boxValue
-        );
-
-        setHiddenValue(
-            checkinForm,
-            'district',
-            districtValue
-        );
-
-        setHiddenValue(
+setHiddenValue(
             checkoutForm,
             'box_id',
             boxValue
@@ -1411,8 +1401,8 @@ document.addEventListener('DOMContentLoaded', function () {
         );
 
         const employeeIdInput =
-            checkinForm
-                ? checkinForm.querySelector(
+            checkoutForm
+                ? checkoutForm.querySelector(
                     'input[name="karyawan_id"]'
                 )
                 : null;
@@ -1426,13 +1416,7 @@ document.addEventListener('DOMContentLoaded', function () {
             employeeId !== '' &&
             boxValue !== '' &&
             districtValue !== '';
-
-        if (submitCheckinButton) {
-            submitCheckinButton.disabled =
-                !canSubmit;
-        }
-
-        if (checkoutForm) {
+if (checkoutForm) {
 
             const checkoutButton =
                 checkoutForm.querySelector(
@@ -1471,125 +1455,6 @@ document.addEventListener('DOMContentLoaded', function () {
         visibleDistrictInput.addEventListener(
             'change',
             syncManualLocation
-        );
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SEMUA LAYANAN BERDASARKAN TEXTAREA YANG DIISI
-    |--------------------------------------------------------------------------
-    |
-    | Tidak ada lagi pilihan satu layanan.
-    | Admin boleh mengisi 1, 2, 3, atau semua layanan.
-    |--------------------------------------------------------------------------
-    */
-
-    function buildServiceInputs()
-    {
-        if (!dynamicServiceInputs) {
-            return false;
-        }
-
-        while (dynamicServiceInputs.firstChild) {
-            dynamicServiceInputs.removeChild(
-                dynamicServiceInputs.firstChild
-            );
-        }
-
-        let anyFilled = false;
-
-        serviceDescriptions.forEach(
-            function (textarea)
-            {
-                const value =
-                    textarea.value.trim();
-
-                const serviceName =
-                    textarea.getAttribute(
-                        'data-service'
-                    );
-
-                if (
-                    value === '' ||
-                    !serviceName
-                ) {
-                    return;
-                }
-
-                anyFilled = true;
-
-                const serviceInput =
-                    document.createElement(
-                        'input'
-                    );
-
-                serviceInput.type =
-                    'hidden';
-
-                serviceInput.name =
-                    'jenis_layanan[]';
-
-                serviceInput.value =
-                    serviceName;
-
-                dynamicServiceInputs.appendChild(
-                    serviceInput
-                );
-
-
-                const descriptionInput =
-                    document.createElement(
-                        'input'
-                    );
-
-                descriptionInput.type =
-                    'hidden';
-
-                descriptionInput.name =
-                    'deskripsi_pekerjaan[]';
-
-                descriptionInput.value =
-                    value;
-
-                dynamicServiceInputs.appendChild(
-                    descriptionInput
-                );
-            }
-        );
-
-        return anyFilled;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SIMPAN CHECKIN
-    |--------------------------------------------------------------------------
-    */
-
-    if (checkinForm) {
-
-        checkinForm.addEventListener(
-            'submit',
-            function (event)
-            {
-                syncManualLocation();
-
-                const hasService =
-                    buildServiceInputs();
-
-                if (!hasService) {
-
-                    event.preventDefault();
-
-                    alert(
-                        'Silakan isi minimal satu deskripsi pekerjaan.'
-                    );
-
-                    return;
-                }
-            }
         );
     }
 
