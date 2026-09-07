@@ -33,8 +33,6 @@
                         <summary>Setting</summary>
                         <div class="sidebar-dropdown-menu">
                             <a href="{{ route('profile.super') }}" class="{{ request()->routeIs('profile.super') ? 'active' : '' }}">Profile</a>
-                            <a href="#">Notification</a>
-                            <a href="#">Security</a>
                         </div>
                     </details>
                 </nav>
@@ -51,10 +49,14 @@
                         <span class="bell-icon">🔔</span>
                         <span class="notification-dot">4</span>
                     </button>
-                    <div class="profile-card">
-                        <div class="profile-avatar">S</div>
-                        <strong>Super Admin</strong>
-                    </div>
+                    <a href="{{ route('profile.super') }}" class="profile-card" aria-label="Edit profile">
+                        <div class="profile-avatar">
+                            @if (!empty($profileUser?->foto_profil))
+                                <img src="{{ asset($profileUser->foto_profil) }}" alt="Foto profil">
+                            @endif
+                        </div>
+                        <div><p>{{ $profileUser?->username ?? $profileUser?->nama_lengkap ?? 'Super Admin' }}</p></div>
+                    </a>
                 </div>
             </header>
 
@@ -81,10 +83,11 @@
                                     <th>ID DATA</th>
                                     <th>NAMA</th>
                                     <th>TANGGAL</th>
-                                    <th>NAMA BOX</th>
+                                    <th>ODC</th>
                                     <th>JAM CHEKIN</th>
                                     <th>JAM CHECKOUT</th>
-                                    <th>LOKASI</th>
+                                    <th>DISTRICT</th>
+                                    <th>AKTIVITAS</th>
                                     <th>STATUS</th>
                                 </tr>
                             </thead>
@@ -98,11 +101,18 @@
                                         <td>{{ $item['checkin'] }}</td>
                                         <td>{{ $item['checkout'] }}</td>
                                         <td>{{ $item['location'] }}</td>
+                                        <td class="history-activity-cell">
+                                            @foreach (($item['activity'] ?? []) as $initial => $checked)
+                                                <span class="history-activity-item {{ $checked ? 'is-complete' : 'is-incomplete' }}">
+                                                    <span class="history-activity-check">{{ $checked ? '✓' : '✕' }}</span>{{ $initial }}
+                                                </span>
+                                            @endforeach
+                                        </td>
                                         <td><span class="status-pill">{{ $item['status'] }}</span></td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="8" style="text-align:center; padding:20px; color:#6b7280;">Tidak ada history ditemukan.</td>
+                                        <td colspan="9" style="text-align:center; padding:20px; color:#6b7280;">Tidak ada history ditemukan.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -163,6 +173,23 @@
                     pill.classList.add('checkin');
                 }
             });
+
+            var searchInput = document.querySelector('.history-search-form input[name="q"]');
+            var searchForm = document.querySelector('.history-search-form');
+
+            if (searchInput && searchForm) {
+                var lastSearchValue = searchInput.value || '';
+
+                searchInput.addEventListener('input', function () {
+                    var currentValue = (this.value || '').trim();
+
+                    if (currentValue === '' && lastSearchValue !== '') {
+                        window.location.href = searchForm.action;
+                    }
+
+                    lastSearchValue = currentValue;
+                });
+            }
         });
     </script>
 </body>
