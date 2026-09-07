@@ -11,6 +11,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class DashboardController extends Controller
 {
@@ -22,15 +24,19 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
+        $today = now()->format('Y-m-d');
+
         $aksesHariIni = DB::table('checkin_checkouts')
-            ->whereDate('tanggal', now()->format('Y-m-d'))
+            ->whereDate('tanggal', $today)
             ->count();
 
         $aksesBerhasil = DB::table('checkin_checkouts')
+            ->whereDate('tanggal', $today)
             ->where('akses_hasil', 'berhasil')
             ->count();
 
         $aksesDitolak = DB::table('checkin_checkouts')
+            ->whereDate('tanggal', $today)
             ->where('akses_hasil', 'ditolak')
             ->count();
 
@@ -205,9 +211,9 @@ class DashboardController extends Controller
         |
         */
 
-        $chartDate = DB::table('checkin_checkouts')
-            ->whereNotNull('tanggal')
-            ->max('tanggal');
+        // Gunakan tanggal hari ini agar grafik sinkron dengan statistik
+        // dan aktivitas Checkin/Checkout yang baru dilakukan.
+        $chartDate = $today;
 
         $activityChartLabels = [
             '00:00',
@@ -453,8 +459,8 @@ class DashboardController extends Controller
         $validated = $request->validate([
             'id_card' => 'required|string|max:50|unique:karyawans,id_card',
             'nama_lengkap' => 'required|string|max:150',
-            'nik' => 'nullable|string|max:30',
-            'jabatan' => 'nullable|string|max:100',
+            'nik' => 'nullable|string|max:16',
+            'jabatan' => 'nullable|in:Teknisi B2C',
             'devisi' => 'nullable|string|max:100',
             'foto' => 'nullable|string|max:255',
         ]);
@@ -548,6 +554,35 @@ class DashboardController extends Controller
 
         $employees->setCollection(
             $employees->getCollection()->map(function (Karyawan $karyawan) {
+
+                $birthDate = '-';
+
+                if (!empty($karyawan->tanggal_lahir)) {
+                    $timestamp = strtotime($karyawan->tanggal_lahir);
+
+                    if ($timestamp !== false) {
+                        $birthDate = date('d/m/Y', $timestamp);
+                    }
+                }
+
+                $odsLabel = '-';
+
+                if (!empty($karyawan->ods_id) && Schema::hasTable('ods')) {
+                    $ods = DB::table('ods')
+                        ->where('id', $karyawan->ods_id)
+                        ->first();
+
+                    if ($ods) {
+                        if (!empty($ods->kode_ods) && !empty($ods->nama_ods)) {
+                            $odsLabel = $ods->kode_ods . ' - ' . $ods->nama_ods;
+                        } elseif (!empty($ods->kode_ods)) {
+                            $odsLabel = $ods->kode_ods;
+                        } elseif (!empty($ods->nama_ods)) {
+                            $odsLabel = $ods->nama_ods;
+                        }
+                    }
+                }
+
                 return [
                     'id' => '#' . $karyawan->id_card,
                     'database_id' => $karyawan->id,
@@ -555,14 +590,31 @@ class DashboardController extends Controller
                     'calendar' => $karyawan->created_at
                         ? $karyawan->created_at->format('d/m/Y')
                         : '-',
-                    'status' => $karyawan->status,
+                    'birth_date' => $birthDate,
+                    'birth_date_raw' => !empty($karyawan->tanggal_lahir)
+                        ? date('Y-m-d', strtotime($karyawan->tanggal_lahir))
+                        : '',
+                    'gender' => $karyawan->jenis_kelamin ?? '-',
+                    'nik' => $karyawan->nik ?? '-',
+                    'email' => $karyawan->email ?? '-',
+                    'position' => $karyawan->jabatan ?? '-',
+                    'address' => $karyawan->alamat ?? '-',
+                    'ods' => $odsLabel,
+                    'ods_id' => $karyawan->ods_id ?? null,
+                    'status' => strtolower((string) ($karyawan->status ?? 'pending')),
                 ];
             })
         );
 
+        $odsOptions = Schema::hasTable('ods')
+            ? DB::table('ods')
+                ->orderBy('id')
+                ->get(['id', 'kode_ods', 'nama_ods'])
+            : collect();
+
         return view(
             'auth.karyawanspradmin',
-            compact('employees', 'search', 'perPage')
+            compact('employees', 'search', 'perPage', 'odsOptions')
         );
     }
 
@@ -602,23 +654,277 @@ class DashboardController extends Controller
             ->with('success', 'Karyawan berhasil ditolak.');
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | UBAH STATUS KARYAWAN SUPER ADMIN
+    |--------------------------------------------------------------------------
+    |
+    | Digunakan dari modal Detail Karyawan.
+    | Data karyawan tidak dihapus. Hanya status aktif/nonaktif yang diubah
+    | agar riwayat Checkin/Checkout tetap aman.
+    |
+    */
+
+    public function updateSuperAdminEmployeeStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:aktif,nonaktif',
+        ]);
+
+        $karyawan = Karyawan::findOrFail($id);
+
+        $oldStatus = strtolower((string) ($karyawan->status ?? ''));
+        $newStatus = $validated['status'];
+
+        if ($oldStatus === $newStatus) {
+            return redirect()
+                ->route('karyawan.super')
+                ->with(
+                    'success',
+                    $newStatus === 'aktif'
+                        ? 'Karyawan sudah dalam status aktif.'
+                        : 'Karyawan sudah dalam status nonaktif.'
+                );
+        }
+
+        $karyawan->status = $newStatus;
+        $karyawan->save();
+
+        return redirect()
+            ->route('karyawan.super')
+            ->with(
+                'success',
+                $newStatus === 'aktif'
+                    ? 'Karyawan berhasil diaktifkan kembali.'
+                    : 'Karyawan berhasil dinonaktifkan.'
+            );
+    }
+
     public function storeSuperAdminEmployee(Request $request)
     {
         $data = $request->validate([
             'name' => 'required|string|max:150',
-            'nik' => 'required|string|max:30|unique:karyawans,nik',
-            'jabatan' => 'required|string|max:100',
+            'tanggal_lahir' => 'required|date',
+            'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
+            'nik' => 'required|string|max:16|unique:karyawans,nik',
+            'email' => [
+                'required',
+                'email',
+                'max:150',
+                Rule::unique('karyawans', 'email'),
+                Rule::unique('users', 'email'),
+            ],
+            'jabatan' => 'required|in:Teknisi B2C',
+            'alamat' => 'required|string|max:255',
+            'ods_manual' => 'required|string|max:255',
+            'status' => 'required|in:Aktif,Nonaktif',
+            'password' => 'required|string|min:6',
         ]);
 
-        Karyawan::create([
-            'id_card' => 'EMP-' . $data['nik'],
-            'nama_lengkap' => $data['name'],
-            'nik' => $data['nik'],
-            'jabatan' => $data['jabatan'],
-            'status' => 'pending',
+        DB::transaction(function () use ($data) {
+            $karyawan = new Karyawan();
+
+            $karyawan->id_card = 'EMP-' . $data['nik'];
+            $karyawan->nama_lengkap = $data['name'];
+            $karyawan->tanggal_lahir = $data['tanggal_lahir'];
+            $karyawan->jenis_kelamin = $data['jenis_kelamin'];
+            $karyawan->nik = $data['nik'];
+            $karyawan->email = $data['email'];
+            $karyawan->jabatan = $data['jabatan'];
+            $karyawan->alamat = $data['alamat'];
+
+            // Map manual ODS input to ods_id
+            $odsInput = trim($data['ods_manual'] ?? '');
+            $odsId = null;
+
+            if ($odsInput !== '') {
+                $existing = DB::table('ods')
+                    ->where('kode_ods', $odsInput)
+                    ->orWhere('nama_ods', $odsInput)
+                    ->first();
+
+                if ($existing) {
+                    $odsId = $existing->id;
+                } else {
+                    $odsId = DB::table('ods')->insertGetId([
+                        'kode_ods' => $odsInput,
+                        'nama_ods' => '',
+                    ]);
+                }
+            }
+
+            $karyawan->ods_id = $odsId;
+            $karyawan->status = strtolower($data['status']);
+            $karyawan->save();
+
+            /*
+            |--------------------------------------------------------------------------
+            | BUAT AKUN LOGIN ADMIN
+            |--------------------------------------------------------------------------
+            |
+            | Data profil tetap disimpan di tabel karyawans.
+            | Data autentikasi disimpan di tabel users agar Auth::attempt()
+            | dapat digunakan seperti login yang sudah berjalan.
+            |
+            */
+            User::create([
+                'username' => $this->generateUniqueEmployeeUsername($data['name']),
+                'nama_lengkap' => $data['name'],
+                'email' => $data['email'],
+                'password' => $data['password'],
+                'role' => 'admin',
+            ]);
+        });
+
+        return redirect()
+            ->route('karyawan.super')
+            ->with(
+                'success',
+                strtolower($data['status']) === 'aktif'
+                    ? 'Data karyawan berhasil ditambahkan dan akun login Admin sudah aktif.'
+                    : 'Data karyawan berhasil ditambahkan. Akun login tersimpan, tetapi akses login menunggu status Aktif.'
+            );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE DATA KARYAWAN SUPER ADMIN
+    |--------------------------------------------------------------------------
+    */
+
+    public function updateSuperAdminEmployee(Request $request, $id)
+    {
+        $karyawan = Karyawan::findOrFail($id);
+
+        // Simpan email lama untuk menemukan pasangan akun users.
+        $oldEmail = $karyawan->email;
+
+        $linkedUser = !empty($oldEmail)
+            ? User::where('email', $oldEmail)->first()
+            : null;
+
+        $data = $request->validate([
+            'name' => 'required|string|max:150',
+            'tanggal_lahir' => 'required|date',
+            'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
+            'nik' => [
+                'required',
+                'string',
+                'max:16',
+                Rule::unique('karyawans', 'nik')->ignore($karyawan->id),
+            ],
+            'email' => [
+                'required',
+                'email',
+                'max:150',
+                Rule::unique('karyawans', 'email')->ignore($karyawan->id),
+                Rule::unique('users', 'email')->ignore($linkedUser?->id),
+            ],
+            'jabatan' => 'required|in:Teknisi B2C',
+            'alamat' => 'required|string|max:255',
+            'ods_manual' => 'required|string|max:255',
+            'password' => 'nullable|string|min:6',
         ]);
 
-        return redirect()->route('karyawan.super')->with('success', 'Data karyawan berhasil ditambahkan dan menunggu persetujuan.');
+        DB::transaction(function () use ($data, $karyawan, $linkedUser) {
+            $karyawan->id_card = 'EMP-' . $data['nik'];
+            $karyawan->nama_lengkap = $data['name'];
+            $karyawan->tanggal_lahir = $data['tanggal_lahir'];
+            $karyawan->jenis_kelamin = $data['jenis_kelamin'];
+            $karyawan->nik = $data['nik'];
+            $karyawan->email = $data['email'];
+            $karyawan->jabatan = $data['jabatan'];
+            $karyawan->alamat = $data['alamat'];
+
+            // Map manual ODS input to ods_id
+            $odsInput = trim($data['ods_manual'] ?? '');
+            $odsId = null;
+
+            if ($odsInput !== '') {
+                $existing = DB::table('ods')
+                    ->where('kode_ods', $odsInput)
+                    ->orWhere('nama_ods', $odsInput)
+                    ->first();
+
+                if ($existing) {
+                    $odsId = $existing->id;
+                } else {
+                    $odsId = DB::table('ods')->insertGetId([
+                        'kode_ods' => $odsInput,
+                        'nama_ods' => '',
+                    ]);
+                }
+            }
+
+            $karyawan->ods_id = $odsId;
+            $karyawan->save();
+
+            /*
+            |--------------------------------------------------------------------------
+            | SINKRONKAN AKUN LOGIN
+            |--------------------------------------------------------------------------
+            */
+            if ($linkedUser) {
+                $linkedUser->nama_lengkap = $data['name'];
+                $linkedUser->email = $data['email'];
+                $linkedUser->role = 'admin';
+
+                if (!empty($data['password'])) {
+                    $linkedUser->password = $data['password'];
+                }
+
+                $linkedUser->save();
+            }
+        });
+
+        return redirect()
+            ->route('karyawan.super')
+            ->with('success', 'Data karyawan dan akun login berhasil diperbarui.');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | HAPUS DATA KARYAWAN SUPER ADMIN
+    |--------------------------------------------------------------------------
+    |
+    | Penghapusan diblokir jika karyawan sudah mempunyai riwayat
+    | Checkin/Checkout. Dalam kondisi tersebut gunakan Nonaktifkan Karyawan.
+    |
+    */
+
+    public function deleteSuperAdminEmployee($id)
+    {
+        $karyawan = Karyawan::findOrFail($id);
+
+        $hasHistory = Schema::hasTable('checkin_checkouts')
+            && DB::table('checkin_checkouts')
+                ->where('karyawan_id', $karyawan->id)
+                ->exists();
+
+        if ($hasHistory) {
+            return redirect()
+                ->route('karyawan.super')
+                ->withErrors([
+                    'delete' => 'Karyawan tidak dapat dihapus karena sudah memiliki riwayat Checkin/Checkout. Gunakan fitur Nonaktifkan Karyawan.',
+                ]);
+        }
+
+        $name = $karyawan->nama_lengkap;
+        $email = $karyawan->email;
+
+        DB::transaction(function () use ($karyawan, $email) {
+            if (!empty($email)) {
+                User::where('email', $email)
+                    ->where('role', 'admin')
+                    ->delete();
+            }
+
+            $karyawan->delete();
+        });
+
+        return redirect()
+            ->route('karyawan.super')
+            ->with('success', 'Karyawan ' . $name . ' beserta akun loginnya berhasil dihapus.');
     }
 
     public function superAdminHistory(Request $request)
@@ -1865,47 +2171,80 @@ class DashboardController extends Controller
     {
         /*
         |--------------------------------------------------------------------------
-        | DATA KARYAWAN
+        | STATUS RFID / IOT
+        |--------------------------------------------------------------------------
+        |
+        | Saat halaman pertama kali dibuka, profil tidak langsung mengambil
+        | karyawan aktif pertama. Sistem menunggu ID Card.
+        |
+        | Selama perangkat IoT belum selesai, kolom pencarian tetap dapat
+        | dipakai sebagai simulasi pembacaan RFID.
+        |
+        */
+
+        $karyawan = null;
+        $rfidState = 'waiting';
+        $rfidMessage = 'Perangkat RFID/IoT belum terhubung. Tempelkan ID Card saat perangkat sudah siap. Untuk sementara, kolom pencarian dapat digunakan sebagai simulasi RFID.';
+
+        /*
+        |--------------------------------------------------------------------------
+        | KARYAWAN YANG TERHUBUNG DENGAN AKUN LOGIN
+        |--------------------------------------------------------------------------
+        |
+        | Karyawan baru yang dibuat Super Admin mempunyai email yang sama
+        | pada tabel karyawans dan users.
+        |
+        */
+
+        $loggedInKaryawan = null;
+
+        if (Auth::check()) {
+            $loggedInKaryawan = Karyawan::where('email', Auth::user()->email)
+                ->first();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | SIMULASI PEMBACAAN RFID
         |--------------------------------------------------------------------------
         */
 
-        $query = Karyawan::query()
-            ->where('status', 'aktif');
-
         if ($request->filled('q')) {
+            $search = trim((string) $request->q);
 
-            $search = $request->q;
+            $candidate = Karyawan::query()
+                ->where('status', 'aktif')
+                ->where(function ($query) use ($search) {
+                    $query->where('id_card', $search)
+                        ->orWhere('nama_lengkap', 'like', '%' . $search . '%');
+                })
+                ->first();
 
-            $query->where(function ($q) use ($search) {
-
-                $q->where(
-                    'id_card',
-                    'like',
-                    '%' . $search . '%'
-                )
-                ->orWhere(
-                    'nama_lengkap',
-                    'like',
-                    '%' . $search . '%'
-                );
-            });
+            if (!$candidate) {
+                $rfidState = 'not_found';
+                $rfidMessage = 'ID Card atau karyawan tidak ditemukan, atau status karyawan sedang nonaktif.';
+            } elseif ($loggedInKaryawan && (int) $candidate->id !== (int) $loggedInKaryawan->id) {
+                /*
+                | Keamanan:
+                | Jika akun login memang terhubung dengan data karyawan,
+                | kartu yang dibaca harus milik akun tersebut.
+                */
+                $rfidState = 'mismatch';
+                $rfidMessage = 'ID Card tidak sesuai dengan akun yang sedang login. Gunakan ID Card milik akun Anda.';
+            } else {
+                $karyawan = $candidate;
+                $rfidState = 'ready';
+                $rfidMessage = 'ID Card berhasil diverifikasi. Profil karyawan siap digunakan untuk proses Checkin/Checkout.';
+            }
         }
-
-        $karyawan = $query->first();
 
         /*
         |--------------------------------------------------------------------------
         | FORMAT DATA KARYAWAN UNTUK BLADE
         |--------------------------------------------------------------------------
-        |
-        | Struktur key lama tetap dipertahankan.
-        | Ditambahkan key baru untuk Profil Karyawan sesuai Figma:
-        | birth_date, gender, email, address, dan ods.
-        |
         */
 
         if (!$karyawan) {
-
             $employee = [
                 'id_card' => '-',
                 'name' => '-',
@@ -1918,22 +2257,14 @@ class DashboardController extends Controller
                 'address' => '-',
                 'ods' => '-',
                 'ods_id' => null,
-                'status' => 'Tidak ditemukan',
+                'status' => $rfidState === 'waiting' ? 'Menunggu ID Card' : 'Belum Terverifikasi',
                 'database_id' => null,
+                'photo' => null,
             ];
-
         } else {
-
-            /*
-            |--------------------------------------------------------------------------
-            | FORMAT TANGGAL LAHIR
-            |--------------------------------------------------------------------------
-            */
-
             $birthDate = '-';
 
             if (!empty($karyawan->tanggal_lahir)) {
-
                 $timestamp = strtotime($karyawan->tanggal_lahir);
 
                 if ($timestamp !== false) {
@@ -1941,19 +2272,9 @@ class DashboardController extends Controller
                 }
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | AMBIL DATA ODS MILIK KARYAWAN
-            |--------------------------------------------------------------------------
-            |
-            | ODS sekarang mengikuti data karyawan melalui karyawans.ods_id.
-            |
-            */
-
             $ods = null;
 
             if (!empty($karyawan->ods_id)) {
-
                 $ods = DB::table('ods')
                     ->where('id', $karyawan->ods_id)
                     ->first();
@@ -1962,29 +2283,14 @@ class DashboardController extends Controller
             $odsLabel = '-';
 
             if ($ods) {
-
                 if (!empty($ods->kode_ods) && !empty($ods->nama_ods)) {
-
-                    $odsLabel =
-                        $ods->kode_ods . ' - ' . $ods->nama_ods;
-
+                    $odsLabel = $ods->kode_ods . ' - ' . $ods->nama_ods;
                 } elseif (!empty($ods->kode_ods)) {
-
-                    $odsLabel =
-                        $ods->kode_ods;
-
+                    $odsLabel = $ods->kode_ods;
                 } elseif (!empty($ods->nama_ods)) {
-
-                    $odsLabel =
-                        $ods->nama_ods;
+                    $odsLabel = $ods->nama_ods;
                 }
             }
-
-            /*
-            |--------------------------------------------------------------------------
-            | DATA PROFIL KARYAWAN
-            |--------------------------------------------------------------------------
-            */
 
             $employee = [
                 'id_card' => $karyawan->id_card,
@@ -2000,6 +2306,7 @@ class DashboardController extends Controller
                 'ods_id' => $karyawan->ods_id ?? null,
                 'status' => ucfirst($karyawan->status),
                 'database_id' => $karyawan->id,
+                'photo' => $karyawan->foto ?? null,
             ];
         }
 
@@ -2014,29 +2321,12 @@ class DashboardController extends Controller
             ->orderBy('kode_box')
             ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | SMART BOX YANG DIPILIH
-        |--------------------------------------------------------------------------
-        */
-
         $selectedBoxId = $request->input('box_id');
-
         $selectedBox = null;
 
         if ($selectedBoxId) {
-
-            $selectedBox = $smartBoxes->firstWhere(
-                'id',
-                (int) $selectedBoxId
-            );
+            $selectedBox = $smartBoxes->firstWhere('id', (int) $selectedBoxId);
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | DATA DISTRICT / LOKASI
-        |--------------------------------------------------------------------------
-        */
 
         $districts = $smartBoxes
             ->pluck('lokasi')
@@ -2045,46 +2335,16 @@ class DashboardController extends Controller
             ->sort()
             ->values();
 
-        /*
-        |--------------------------------------------------------------------------
-        | DISTRICT YANG DIPILIH
-        |--------------------------------------------------------------------------
-        */
-
         $selectedDistrict = $selectedBox
             ? $selectedBox->lokasi
             : $request->input('district');
 
-        /*
-        |--------------------------------------------------------------------------
-        | DATA LAYANAN / PEKERJAAN
-        |--------------------------------------------------------------------------
-        */
-
         $services = collect([
-            [
-                'title' => 'Survey',
-                'desc' => ''
-            ],
-            [
-                'title' => 'Deployment',
-                'desc' => ''
-            ],
-            [
-                'title' => 'Assurance',
-                'desc' => ''
-            ],
-            [
-                'title' => 'Maintenance',
-                'desc' => ''
-            ],
+            ['title' => 'Survey', 'desc' => ''],
+            ['title' => 'Deployment', 'desc' => ''],
+            ['title' => 'Assurance', 'desc' => ''],
+            ['title' => 'Maintenance', 'desc' => ''],
         ]);
-
-        /*
-        |--------------------------------------------------------------------------
-        | KIRIM DATA KE BLADE
-        |--------------------------------------------------------------------------
-        */
 
         return view(
             'auth.checkin',
@@ -2095,7 +2355,10 @@ class DashboardController extends Controller
                 'districts',
                 'selectedBoxId',
                 'selectedBox',
-                'selectedDistrict'
+                'selectedDistrict',
+                'rfidState',
+                'rfidMessage',
+                'loggedInKaryawan'
             )
         );
     }
@@ -2113,8 +2376,7 @@ class DashboardController extends Controller
         | VALIDASI DATA
         |--------------------------------------------------------------------------
         |
-        | checkin.blade.php mengirim semua layanan yang terisi dalam bentuk:
-        | jenis_layanan[] dan deskripsi_pekerjaan[].
+        | Struktur form lama tetap dipertahankan.
         |
         */
 
@@ -2138,13 +2400,6 @@ class DashboardController extends Controller
             ],
         ]);
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | PASTIKAN JUMLAH JENIS LAYANAN DAN DESKRIPSI SAMA
-        |--------------------------------------------------------------------------
-        */
-
         if (
             count($validated['jenis_layanan']) !==
             count($validated['deskripsi_pekerjaan'])
@@ -2157,33 +2412,62 @@ class DashboardController extends Controller
                 );
         }
 
-
         /*
         |--------------------------------------------------------------------------
-        | CEK KARYAWAN
+        | TENTUKAN KARYAWAN YANG BENAR
         |--------------------------------------------------------------------------
+        |
+        | Jika akun login terhubung dengan tabel karyawans, ID karyawan WAJIB
+        | mengikuti akun yang sedang login. Dengan begitu data Faizul tidak akan
+        | pernah lagi tersimpan sebagai Ahmad Fauzan karena hidden input lama.
+        |
         */
 
-        $karyawan = Karyawan::query()
-            ->where('id', $validated['karyawan_id'])
-            ->where('status', 'aktif')
-            ->first();
+        $loggedInKaryawan = null;
 
-        if (!$karyawan) {
-            return back()
-                ->withInput()
-                ->with(
-                    'error',
-                    'Karyawan tidak aktif atau tidak ditemukan.'
-                );
+        if (Auth::check()) {
+            $loggedInKaryawan = Karyawan::where('email', Auth::user()->email)
+                ->first();
         }
 
+        if ($loggedInKaryawan) {
 
-        /*
-        |--------------------------------------------------------------------------
-        | CEK SMART BOX
-        |--------------------------------------------------------------------------
-        */
+            if (strtolower((string) $loggedInKaryawan->status) !== 'aktif') {
+                return back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'Akun karyawan sedang nonaktif dan tidak dapat melakukan Checkin.'
+                    );
+            }
+
+            if ((int) $validated['karyawan_id'] !== (int) $loggedInKaryawan->id) {
+                return back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'ID Card tidak sesuai dengan akun yang sedang login.'
+                    );
+            }
+
+            $karyawan = $loggedInKaryawan;
+
+        } else {
+
+            $karyawan = Karyawan::query()
+                ->where('id', $validated['karyawan_id'])
+                ->where('status', 'aktif')
+                ->first();
+
+            if (!$karyawan) {
+                return back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'Karyawan tidak aktif atau tidak ditemukan.'
+                    );
+            }
+        }
 
         $smartBox = DB::table('smart_boxes')
             ->where('id', $validated['box_id'])
@@ -2199,23 +2483,35 @@ class DashboardController extends Controller
                 );
         }
 
-
         /*
         |--------------------------------------------------------------------------
-        | SIMPAN CHECKIN + SEMUA LAYANAN DALAM SATU TRANSAKSI
+        | CEK APAKAH MASIH ADA CHECKIN AKTIF
         |--------------------------------------------------------------------------
         */
+
+        $activeCheckin = DB::table('checkin_checkouts')
+            ->where('karyawan_id', $karyawan->id)
+            ->whereIn('status', ['chekin', 'checkin'])
+            ->whereNull('jam_checkout')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($activeCheckin) {
+            return redirect()
+                ->route('checkin', [
+                    'q' => $karyawan->id_card,
+                    'box_id' => $activeCheckin->smart_box_id,
+                    'district' => $activeCheckin->lokasi,
+                ])
+                ->with(
+                    'error',
+                    'Karyawan masih memiliki Checkin aktif. Lakukan Checkout terlebih dahulu.'
+                );
+        }
 
         try {
 
             DB::beginTransaction();
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | BUAT KODE DATA
-            |--------------------------------------------------------------------------
-            */
 
             do {
 
@@ -2232,21 +2528,7 @@ class DashboardController extends Controller
 
             } while ($kodeExists);
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | WAKTU CHECKIN
-            |--------------------------------------------------------------------------
-            */
-
             $now = now();
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | SIMPAN DATA CHECKIN
-            |--------------------------------------------------------------------------
-            */
 
             $checkinId = DB::table('checkin_checkouts')->insertGetId([
 
@@ -2270,15 +2552,8 @@ class DashboardController extends Controller
 
                 'id_card_terbaca' => 1,
 
-                /*
-                | District yang diketik manual pada halaman Checkin
-                | tetap disimpan pada kolom lokasi.
-                */
                 'lokasi' => $validated['district'],
 
-                /*
-                | Sesuai ENUM database yang digunakan project saat ini.
-                */
                 'status' => 'chekin',
 
                 'approval_status' => 'pending',
@@ -2294,30 +2569,13 @@ class DashboardController extends Controller
                 'updated_at' => $now,
             ]);
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | SIMPAN SEMUA LAYANAN / PEKERJAAN
-            |--------------------------------------------------------------------------
-            |
-            | Satu checkin dapat memiliki beberapa baris layanan_pekerjaans.
-            | Contoh jika empat deskripsi diisi:
-            |
-            | Survey      -> deskripsi Survey
-            | Deployment  -> deskripsi Deployment
-            | Assurance   -> deskripsi Assurance
-            | Maintenance -> deskripsi Maintenance
-            |
-            */
-
             $serviceRows = [];
 
             foreach ($validated['jenis_layanan'] as $index => $jenisLayanan) {
 
-                $deskripsi =
-                    trim(
-                        (string) $validated['deskripsi_pekerjaan'][$index]
-                    );
+                $deskripsi = trim(
+                    (string) $validated['deskripsi_pekerjaan'][$index]
+                );
 
                 $serviceRows[] = [
                     'checkin_checkout_id' => $checkinId,
@@ -2330,13 +2588,6 @@ class DashboardController extends Controller
 
             DB::table('layanan_pekerjaans')
                 ->insert($serviceRows);
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | SELESAI TRANSAKSI
-            |--------------------------------------------------------------------------
-            */
 
             DB::commit();
 
@@ -2354,13 +2605,6 @@ class DashboardController extends Controller
                     $e->getMessage()
                 );
         }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | KEMBALI KE HALAMAN CHECKIN
-        |--------------------------------------------------------------------------
-        */
 
         return redirect()
             ->route('checkin', [
@@ -2388,7 +2632,7 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $request->validate([
+        $validated = $request->validate([
             'karyawan_id' => 'required|integer|exists:karyawans,id',
             'box_id' => 'required|integer|exists:smart_boxes,id',
             'district' => 'required|string|max:100',
@@ -2396,38 +2640,66 @@ class DashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | CEK KARYAWAN
+        | TENTUKAN KARYAWAN DARI AKUN LOGIN
         |--------------------------------------------------------------------------
+        |
+        | Faizul login -> email akun dicocokkan ke karyawans -> ID 20.
+        | Jadi Checkout tidak lagi bergantung pada data Ahmad Fauzan / ID 1.
+        |
         */
 
-        $karyawan = DB::table('karyawans')
-            ->where('id', $request->karyawan_id)
-            ->where('status', 'aktif')
-            ->first();
+        $loggedInKaryawan = null;
 
-        if (!$karyawan) {
-
-            return back()
-                ->withInput()
-                ->with(
-                    'error',
-                    'Karyawan tidak aktif atau tidak ditemukan.'
-                );
+        if (Auth::check()) {
+            $loggedInKaryawan = Karyawan::where('email', Auth::user()->email)
+                ->first();
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | CEK SMART BOX
-        |--------------------------------------------------------------------------
-        */
+        if ($loggedInKaryawan) {
+
+            if (strtolower((string) $loggedInKaryawan->status) !== 'aktif') {
+                return back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'Akun karyawan sedang nonaktif dan tidak dapat melakukan Checkout.'
+                    );
+            }
+
+            if ((int) $validated['karyawan_id'] !== (int) $loggedInKaryawan->id) {
+                return back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'ID Card tidak sesuai dengan akun yang sedang login.'
+                    );
+            }
+
+            $karyawan = $loggedInKaryawan;
+
+        } else {
+
+            $karyawan = Karyawan::query()
+                ->where('id', $validated['karyawan_id'])
+                ->where('status', 'aktif')
+                ->first();
+
+            if (!$karyawan) {
+                return back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'Karyawan tidak aktif atau tidak ditemukan.'
+                    );
+            }
+        }
 
         $smartBox = DB::table('smart_boxes')
-            ->where('id', $request->box_id)
+            ->where('id', $validated['box_id'])
             ->where('status', 'aktif')
             ->first();
 
         if (!$smartBox) {
-
             return back()
                 ->withInput()
                 ->with(
@@ -2438,87 +2710,118 @@ class DashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | CARI DATA CHECKIN AKTIF
+        | CARI CHECKIN AKTIF MILIK KARYAWAN YANG BENAR
         |--------------------------------------------------------------------------
-        |
-        | PENTING:
-        | Database menggunakan status "chekin".
-        |
         */
 
         $checkin = DB::table('checkin_checkouts')
             ->where('karyawan_id', $karyawan->id)
-            ->where('smart_box_id', $smartBox->id)
-
-            /*
-            | Sama dengan nilai status yang digunakan saat CHECKIN.
-            */
-            ->where('status', 'chekin')
-
+            ->whereIn('status', ['chekin', 'checkin'])
             ->whereNull('jam_checkout')
             ->orderByDesc('id')
             ->first();
 
         if (!$checkin) {
-
-            return back()
-                ->withInput()
+            return redirect()
+                ->route('checkin', [
+                    'q' => $karyawan->id_card,
+                    'box_id' => $smartBox->id,
+                    'district' => $validated['district'],
+                ])
                 ->with(
                     'error',
-                    'Data Checkin aktif tidak ditemukan.'
+                    'Belum ada Checkin aktif untuk ' .
+                    $karyawan->nama_lengkap .
+                    '. Checkout hanya dapat dilakukan setelah proses Checkin RFID berhasil dibuat.'
                 );
         }
 
         /*
         |--------------------------------------------------------------------------
-        | SIMPAN CHECKOUT
+        | PASTIKAN SMART BOX SESUAI DENGAN CHECKIN
         |--------------------------------------------------------------------------
         */
+
+        if ((int) $checkin->smart_box_id !== (int) $smartBox->id) {
+
+            $checkinBox = DB::table('smart_boxes')
+                ->where('id', $checkin->smart_box_id)
+                ->first();
+
+            return redirect()
+                ->route('checkin', [
+                    'q' => $karyawan->id_card,
+                    'box_id' => $smartBox->id,
+                    'district' => $validated['district'],
+                ])
+                ->with(
+                    'error',
+                    'Smart Box tidak sesuai. Checkin aktif dilakukan melalui ' .
+                    ($checkinBox->kode_box ?? ('Box #' . $checkin->smart_box_id)) .
+                    '.'
+                );
+        }
 
         $now = now();
 
         $updated = DB::table('checkin_checkouts')
             ->where('id', $checkin->id)
-            ->where('status', 'chekin')
+            ->where('karyawan_id', $karyawan->id)
+            ->whereIn('status', ['chekin', 'checkin'])
+            ->whereNull('jam_checkout')
             ->update([
                 'jam_checkout' => $now->format('H:i:s'),
-
                 'updated_at' => $now,
-
                 'status' => 'checkout',
             ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | CEK HASIL UPDATE
-        |--------------------------------------------------------------------------
-        */
-
         if ($updated === 0) {
-
             return back()
                 ->withInput()
                 ->with(
                     'error',
-                    'Data checkout gagal diperbarui.'
+                    'Data Checkout gagal diperbarui atau sesi Checkin sudah ditutup.'
                 );
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | KEMBALI KE HALAMAN CHECKIN
-        |--------------------------------------------------------------------------
-        */
 
         return redirect()
             ->route('checkin', [
                 'q' => $karyawan->id_card,
                 'box_id' => $smartBox->id,
-                'district' => $smartBox->lokasi,
+                'district' => $validated['district'],
             ])
             ->with(
                 'success',
-                'Checkout berhasil disimpan.'
+                'Checkout ' . $karyawan->nama_lengkap . ' berhasil disimpan.'
             );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | USERNAME UNIK UNTUK AKUN KARYAWAN
+    |--------------------------------------------------------------------------
+    |
+    | Login tetap menggunakan email. Username dibuat otomatis karena kolom
+    | username pada tabel users wajib dan unique.
+    |
+    */
+
+    private function generateUniqueEmployeeUsername(string $name): string
+    {
+        $base = Str::lower(Str::ascii($name));
+        $base = preg_replace('/[^a-z0-9]/', '', $base) ?: 'karyawan';
+        $base = substr($base, 0, 40);
+
+        $username = $base;
+        $counter = 1;
+
+        while (User::where('username', $username)->exists()) {
+            $suffix = (string) $counter;
+            $username = substr($base, 0, 50 - strlen($suffix)) . $suffix;
+            $counter++;
+        }
+
+        return $username;
+    }
+
 }

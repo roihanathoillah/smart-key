@@ -16,5 +16,18 @@ class Karyawan extends Model
         'devisi',
         'foto',
         'status',
+        'tanggal_lahir',
+        'jenis_kelamin',
+        'email',
+        'alamat',
+        'ods_id',
     ];
+
+    /**
+     * Hubungkan profil karyawan dengan akun login menggunakan email.
+     */
+    public function user()
+    {
+        return $this->hasOne(User::class, 'email', 'email');
+    }
 }
