@@ -23,6 +23,7 @@
                     <a href="{{ route('super.admin') }}" class="{{ request()->routeIs('super.admin') ? 'active' : '' }}">Dashboard</a>
                     <a href="{{ route('karyawan.super') }}" class="{{ request()->routeIs('karyawan.super') ? 'active' : '' }}">Daftar Karyawan</a>
                     <a href="{{ route('history.super') }}" class="{{ request()->routeIs('history.super') ? 'active' : '' }}">History</a>
+                    <a href="{{ route('super.users') }}" class="{{ request()->routeIs('super.users*') ? 'active' : '' }}">Kelola Super Admin</a>
                 </nav>
             </div>
 
@@ -122,6 +123,49 @@
                     </div>
                 </div>
 
+                <div class="activity-card">
+                    <div class="activity-card-header">
+                        <div>
+                            <p>Aktivitas Terbaru</p>
+                            <h2>Latest Activity</h2>
+                        </div>
+                        <span>Lihat semua</span>
+                    </div>
+                    <div class="activity-table-wrapper">
+                        <table class="activity-table">
+                            <thead>
+                                <tr>
+                                    <th>ID Data</th>
+                                    <th>Nama</th>
+                                    <th>Tanggal</th>
+                                    <th>Nama Box</th>
+                                    <th>Jam Chekin</th>
+                                    <th>Jam Checkout</th>
+                                    <th>Lokasi</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($activities as $activity)
+                                    <tr>
+                                        <td>{{ $activity['id'] }}</td>
+                                        <td>{{ $activity['name'] }}</td>
+                                        <td>{{ $activity['date'] }}</td>
+                                        <td>{{ $activity['box'] }}</td>
+                                        <td>{{ $activity['checkin'] }}</td>
+                                        <td>{{ $activity['checkout'] }}</td>
+                                        <td>{{ $activity['location'] }}</td>
+                                        <td><span class="status-pill">{{ $activity['status'] }}</span></td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="8" class="empty-activity">Belum ada aktivitas checkin atau checkout.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
         </main>
     </div>

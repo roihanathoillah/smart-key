@@ -108,6 +108,135 @@
         }
 
 
+
+        /* =========================================================
+           ODC SEARCHABLE CASCADING DROPDOWN
+           ========================================================= */
+
+        .odc-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        .odc-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .odc-field label {
+            font-size: 14px;
+            font-weight: 700;
+            color: #374151;
+        }
+
+        .odc-field input {
+            width: 100%;
+            min-height: 48px;
+            padding: 0 14px;
+            border: 1px solid #d9dee7;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #1f2937;
+            font-size: 15px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .odc-field input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+        }
+
+        .odc-field input:disabled,
+        .odc-field input[readonly] {
+            background: #f8fafc;
+            color: #64748b;
+        }
+
+        .odc-result {
+            margin-top: 14px;
+            padding: 12px 14px;
+            background: #f8fafc;
+            border-radius: 10px;
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .odc-result strong {
+            color: #1f2937;
+        }
+
+        .odc-result.ready {
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .odc-help {
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .odc-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+
+        /* =========================================================
+           COMPACT SEARCHABLE CODE DROPDOWN
+           ========================================================= */
+
+        .odc-code-autocomplete {
+            position: relative;
+        }
+
+        .odc-code-suggestions {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            z-index: 50;
+            max-height: 220px;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid #d9dee7;
+            border-radius: 10px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+        }
+
+        .odc-code-suggestions.show {
+            display: block;
+        }
+
+        .odc-code-option {
+            width: 100%;
+            padding: 10px 14px;
+            border: 0;
+            background: #ffffff;
+            text-align: left;
+            font-size: 14px;
+            color: #1f2937;
+            cursor: pointer;
+        }
+
+        .odc-code-option:hover,
+        .odc-code-option.active {
+            background: #f1f5f9;
+        }
+
+        .odc-code-empty {
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
         /* =========================================================
            STATUS RFID / IOT
            ========================================================= */
@@ -455,6 +584,319 @@
 
         }
     </style>
+
+    <style>
+        /* =========================================================
+           HEADER ACTIONS - NOTIFICATION + PROFILE
+           ========================================================= */
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .notification-button-wrapper,
+        .header-profile-wrapper {
+            position: relative;
+        }
+
+        .notification-button,
+        .header-profile-button {
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            box-shadow: 0 5px 16px rgba(15, 23, 42, 0.07);
+            cursor: pointer;
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+
+        .notification-button:hover,
+        .header-profile-button:hover {
+            transform: translateY(-1px);
+            border-color: #d1d5db;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10);
+        }
+
+        .notification-button {
+            position: relative;
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bell-icon {
+            font-size: 18px;
+        }
+
+        .notification-dot {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: #ef233c;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            box-sizing: border-box;
+        }
+
+        .notification-menu,
+        .header-profile-menu {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            z-index: 200;
+            display: none;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.14);
+            overflow: hidden;
+        }
+
+        .notification-menu.show,
+        .header-profile-menu.show {
+            display: block;
+        }
+
+        .notification-menu {
+            width: 350px;
+            max-height: 430px;
+        }
+
+        .notification-menu-header {
+            padding: 16px 18px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .notification-menu-header strong {
+            font-size: 15px;
+            color: #111827;
+        }
+
+        .notification-menu-header span {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .notification-list {
+            max-height: 315px;
+            overflow-y: auto;
+        }
+
+        .notification-item-form {
+            margin: 0;
+        }
+
+        .notification-item {
+            width: 100%;
+            border: 0;
+            border-bottom: 1px solid #f1f5f9;
+            background: #ffffff;
+            padding: 13px 16px;
+            text-align: left;
+            cursor: pointer;
+            display: block;
+            box-sizing: border-box;
+        }
+
+        .notification-item:hover {
+            background: #f8fafc;
+        }
+
+        .notification-item.unread {
+            background: #fff7f7;
+        }
+
+        .notification-item-title {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 13px;
+            font-weight: 750;
+            color: #111827;
+        }
+
+        .notification-item-message {
+            display: block;
+            font-size: 12px;
+            line-height: 1.45;
+            color: #64748b;
+        }
+
+        .notification-item-time {
+            display: block;
+            margin-top: 6px;
+            font-size: 10px;
+            color: #94a3b8;
+        }
+
+        .notification-empty {
+            padding: 28px 18px;
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .notification-menu-footer {
+            padding: 10px 12px;
+            border-top: 1px solid #eef2f7;
+            background: #fafafa;
+        }
+
+        .notification-read-all {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            color: #ef233c;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .header-profile-button {
+            min-width: 132px;
+            height: 48px;
+            border-radius: 14px;
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .header-profile-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .header-profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .header-profile-copy {
+            min-width: 0;
+            flex: 1;
+            text-align: left;
+        }
+
+        .header-profile-copy strong {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 78px;
+            font-size: 12px;
+            color: #111827;
+        }
+
+        .header-profile-copy span {
+            display: block;
+            margin-top: 1px;
+            font-size: 10px;
+            color: #64748b;
+        }
+
+        .header-profile-arrow {
+            color: #94a3b8;
+            font-size: 10px;
+        }
+
+        .header-profile-menu {
+            width: 260px;
+        }
+
+        .header-profile-summary {
+            padding: 16px;
+            background: #fafafa;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .header-profile-summary strong {
+            display: block;
+            color: #111827;
+            font-size: 14px;
+        }
+
+        .header-profile-summary span {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 11px;
+            word-break: break-word;
+        }
+
+        .header-profile-link,
+        .header-logout-button {
+            width: 100%;
+            min-height: 44px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 0;
+            background: #ffffff;
+            color: #374151;
+            font-size: 12px;
+            font-weight: 650;
+            text-decoration: none;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        .header-profile-link:hover,
+        .header-logout-button:hover {
+            background: #f8fafc;
+        }
+
+        .header-logout-button {
+            color: #dc2626;
+            border-top: 1px solid #eef2f7;
+        }
+
+        @media (max-width: 900px) {
+            .header-profile-copy,
+            .header-profile-arrow {
+                display: none;
+            }
+
+            .header-profile-button {
+                min-width: 46px;
+                width: 46px;
+                padding: 5px;
+                justify-content: center;
+            }
+
+            .notification-menu {
+                width: min(340px, calc(100vw - 28px));
+            }
+        }
+    </style>
+
 </head>
 
 
@@ -577,32 +1019,177 @@
 
             <div class="header-actions">
 
+                <!-- =====================================================
+                     NOTIFIKASI
+                     ===================================================== -->
                 <div class="notification-button-wrapper">
 
                     <button
                         type="button"
                         class="notification-button"
+                        id="notification-toggle"
                         aria-haspopup="true"
                         aria-expanded="false"
+                        aria-label="Buka notifikasi"
                     >
+                        <span class="bell-icon">🔔</span>
 
-                        <span class="bell-icon">
-                            🔔
-                        </span>
-
-                        <span class="notification-dot">
-                            4
-                        </span>
-
+                        @if(($unreadNotificationCount ?? 0) > 0)
+                            <span class="notification-dot">
+                                {{ ($unreadNotificationCount ?? 0) > 99 ? '99+' : $unreadNotificationCount }}
+                            </span>
+                        @endif
                     </button>
+
+                    <div
+                        class="notification-menu"
+                        id="notification-menu"
+                        role="menu"
+                    >
+                        <div class="notification-menu-header">
+                            <strong>Notifikasi</strong>
+                            <span>
+                                {{ $unreadNotificationCount ?? 0 }} belum dibaca
+                            </span>
+                        </div>
+
+                        <div class="notification-list">
+                            @forelse(($notifications ?? collect()) as $notification)
+                                <form
+                                    method="POST"
+                                    action="{{ route('notifications.read', $notification->id) }}"
+                                    class="notification-item-form"
+                                >
+                                    @csrf
+
+                                    <button
+                                        type="submit"
+                                        class="notification-item {{ (int) $notification->is_read === 0 ? 'unread' : '' }}"
+                                    >
+                                        <span class="notification-item-title">
+                                            {{ $notification->title }}
+                                        </span>
+
+                                        <span class="notification-item-message">
+                                            {{ $notification->message }}
+                                        </span>
+
+                                        <span class="notification-item-time">
+                                            {{ !empty($notification->created_at) ? \Carbon\Carbon::parse($notification->created_at)->diffForHumans() : '-' }}
+                                        </span>
+                                    </button>
+                                </form>
+                            @empty
+                                <div class="notification-empty">
+                                    Belum ada notifikasi.
+                                </div>
+                            @endforelse
+                        </div>
+
+                        @if(($unreadNotificationCount ?? 0) > 0)
+                            <div class="notification-menu-footer">
+                                <form
+                                    method="POST"
+                                    action="{{ route('notifications.readAll') }}"
+                                >
+                                    @csrf
+
+                                    <button
+                                        type="submit"
+                                        class="notification-read-all"
+                                    >
+                                        Tandai semua sudah dibaca
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
+                    </div>
 
                 </div>
 
 
-                <div class="profile-card">
+                <!-- =====================================================
+                     PROFILE
+                     ===================================================== -->
+                <div class="header-profile-wrapper">
 
-                    <div class="profile-avatar">
-                        A
+                    @php
+                        $headerName =
+                            $headerUser?->nama_lengkap
+                            ?? $headerUser?->username
+                            ?? 'Admin';
+
+                        $headerInitial =
+                            strtoupper(
+                                substr(
+                                    trim((string) $headerName),
+                                    0,
+                                    1
+                                )
+                            );
+
+                        $headerRole =
+                            strtolower((string) ($headerUser?->role ?? 'admin')) === 'super_admin'
+                                ? 'Super Admin'
+                                : 'Admin / Teknisi';
+                    @endphp
+
+                    <button
+                        type="button"
+                        class="header-profile-button"
+                        id="profile-toggle"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                    >
+                        <span class="header-profile-avatar">
+                            @if(!empty($headerUser?->foto_profil))
+                                <img
+                                    src="{{ asset($headerUser->foto_profil) }}"
+                                    alt="Foto profil"
+                                >
+                            @else
+                                {{ $headerInitial ?: 'A' }}
+                            @endif
+                        </span>
+
+                        <span class="header-profile-copy">
+                            <strong>{{ $headerName }}</strong>
+                            <span>{{ $headerRole }}</span>
+                        </span>
+
+                        <span class="header-profile-arrow">▼</span>
+                    </button>
+
+                    <div
+                        class="header-profile-menu"
+                        id="profile-menu"
+                    >
+                        <div class="header-profile-summary">
+                            <strong>{{ $headerName }}</strong>
+                            <span>{{ $headerUser?->email ?? '-' }}</span>
+                        </div>
+
+                        <a
+                            href="{{ route('profile') }}"
+                            class="header-profile-link"
+                        >
+                            👤 &nbsp; Profil Saya
+                        </a>
+
+                        <form
+                            method="POST"
+                            action="{{ route('logout') }}"
+                            style="margin:0;"
+                        >
+                            @csrf
+
+                            <button
+                                type="submit"
+                                class="header-logout-button"
+                            >
+                                ↪ &nbsp; Keluar
+                            </button>
+                        </form>
                     </div>
 
                 </div>
@@ -832,15 +1419,6 @@
 
 
                                     <div class="employee-profile-label">
-                                        ODS
-                                    </div>
-                                    <div class="employee-profile-separator">:</div>
-                                    <div class="employee-profile-value">
-                                        {{ $employee['ods'] ?? '-' }}
-                                    </div>
-
-
-                                    <div class="employee-profile-label">
                                         Status
                                     </div>
                                     <div class="employee-profile-separator">:</div>
@@ -904,155 +1482,127 @@
 
 
                 <!-- =================================================
-                     SMART BOX + DISTRICT
+                     ODC / SERVICE AREA / STO / KODE
+                     SEARCHABLE CASCADING DROPDOWN
                      ================================================= -->
 
                 <div class="smartbox-panel">
 
                     <h3 class="smartbox-panel-title">
-                        Pilih Smart Box
+                        Pilih ODC
                     </h3>
 
+                    <div class="odc-grid">
 
-                    @if($smartBoxes->count() > 0)
+                        <!-- 1. JENIS -->
+                        <div class="odc-field">
+                            <label for="odc_prefix">
+                                Jenis
+                            </label>
 
-                        <div class="smartbox-grid">
+                            <input
+                                id="odc_prefix"
+                                type="text"
+                                value="ODC"
+                                readonly
+                            >
 
-
-                            <!-- =====================================
-                                 SMART BOX
-                                 ===================================== -->
-
-                            <div class="smartbox-field">
-
-                                <label for="box_id">
-                                    Smart Box
-                                </label>
-
-
-                                <input
-                                    id="box_id"
-                                    name="box_id"
-                                    form="smartbox-form"
-                                    type="number"
-                                    placeholder="-- Isi Smart Box --"
-                                    value="{{ $selectedBoxId ?? '' }}"
-                                />
-
+                            <div class="odc-help">
+                                Jenis perangkat diawali dengan ODC.
                             </div>
+                        </div>
 
 
+                        <!-- 2. SERVICE AREA -->
+                        <div class="odc-field">
+                            <label for="service_area">
+                                Service Area
+                            </label>
 
-                            <!-- =====================================
-                                 DISTRICT
-                                 ===================================== -->
+                            <input
+                                id="service_area"
+                                type="search"
+                                list="service-area-list"
+                                autocomplete="off"
+                                placeholder="Cari / pilih Service Area..."
+                            >
 
-                            <div class="smartbox-field">
+                            <datalist id="service-area-list">
+                                <option value="TUREN"></option>
+                                <option value="KEPANJEN"></option>
+                                <option value="BATU"></option>
+                                <option value="BLIMBING"></option>
+                                <option value="SINGOSARI"></option>
+                                <option value="KLOJEN"></option>
+                                <option value="MALANG"></option>
+                                <option value="BLITAR"></option>
+                                <option value="TULUNG AGUNG"></option>
+                            </datalist>
 
-                                <label for="district">
-                                    District
-                                </label>
+                            <div class="odc-help">
+                                Bisa diklik atau langsung diketik untuk mencari.
+                            </div>
+                        </div>
 
 
+                        <!-- 3. DATA DI BAWAH SERVICE AREA / STO -->
+                        <div class="odc-field">
+                            <label for="sto_location">
+                                Lokasi / STO
+                            </label>
+
+                            <input
+                                id="sto_location"
+                                type="search"
+                                list="sto-location-list"
+                                autocomplete="off"
+                                placeholder="Pilih Service Area terlebih dahulu..."
+                                disabled
+                            >
+
+                            <datalist id="sto-location-list"></datalist>
+
+                            <div class="odc-help">
+                                Pilihan otomatis mengikuti Service Area.
+                            </div>
+                        </div>
+                        <!-- 4. KODE ODC -->
+                        <div class="odc-field">
+                            <label for="odc_suffix">
+                                Kode
+                            </label>
+
+                            <div class="odc-code-autocomplete">
                                 <input
-                                    id="district"
-                                    name="district"
-                                    form="smartbox-form"
+                                    id="odc_suffix"
                                     type="text"
-                                    placeholder="-- Isi District --"
-                                    value="{{ $selectedDistrict ?? '' }}"
-                                />
+                                    autocomplete="off"
+                                    placeholder="Ketik kode, contoh: FA / FB / FAA..."
+                                    disabled
+                                >
 
+                                <div
+                                    id="odc-code-suggestions"
+                                    class="odc-code-suggestions"
+                                ></div>
                             </div>
 
+                            <div class="odc-help">
+                                Ketik inisial kode. Pilihan yang cocok saja yang akan muncul.
+                            </div>
                         </div>
 
+                    </div>
 
 
-                        <!-- =========================================
-                             INFO SMART BOX
-                             ========================================= -->
-
-                        <div class="smartbox-info">
-
-                            @if($selectedBox)
-
-                                Smart Box yang dipilih:
-
-                                <strong>
-                                    {{ $selectedBox->kode_box }}
-                                </strong>
-
-                                |
-
-                                District:
-
-                                <strong id="selected-location">
-                                    {{ $selectedBox->lokasi }}
-                                </strong>
-
-
-                                <span class="smartbox-status">
-                                    ● Aktif
-                                </span>
-
-                            @else
-
-                                Silakan pilih Smart Box yang akan digunakan
-                                untuk proses Checkin/Checkout.
-
-                            @endif
-
-                        </div>
-
-                    @else
-
-                        <div class="smartbox-empty">
-
-                            Tidak ada Smart Box yang aktif.
-
-                            Silakan tambahkan atau aktifkan Smart Box
-                            terlebih dahulu.
-
-                        </div>
-
-                    @endif
+                    <!-- HASIL KODE ODC -->
+                    <div class="odc-result" id="odc-result">
+                        Pilih Service Area, Lokasi/STO, dan Kode untuk membentuk ID ODC.
+                        <br>
+                        <strong id="odc-final-code">-</strong>
+                    </div>
 
                 </div>
-
-
-
-                <!-- =================================================
-                     FORM SMART BOX
-                     ================================================= -->
-
-                <form
-                    id="smartbox-form"
-                    method="get"
-                    action="{{ route('checkin') }}"
-                    style="display:none;"
-                >
-
-                    <input
-                        type="hidden"
-                        name="q"
-                        value="{{ request('q') }}"
-                    >
-
-
-                    @if(request('box_id'))
-
-                        <input
-                            type="hidden"
-                            name="box_id"
-                            value="{{ request('box_id') }}"
-                        >
-
-                    @endif
-
-                </form>
-
-
 
                 <!-- =================================================
                      LAYANAN / PEKERJAAN
@@ -1290,7 +1840,36 @@
                         <input
                             type="hidden"
                             name="box_id"
-                            value="{{ $selectedBoxId ?? '' }}"
+                            id="checkout_box_id"
+                            value="{{ $smartBoxes->first()->id ?? '' }}"
+                        >
+
+                        <input
+                            type="hidden"
+                            name="odc_code"
+                            id="checkout_odc_code"
+                            value=""
+                        >
+
+                        <input
+                            type="hidden"
+                            name="service_area"
+                            id="checkout_service_area"
+                            value=""
+                        >
+
+                        <input
+                            type="hidden"
+                            name="sto_code"
+                            id="checkout_sto_code"
+                            value=""
+                        >
+
+                        <input
+                            type="hidden"
+                            name="odc_suffix"
+                            id="checkout_odc_suffix"
+                            value=""
                         >
 
 
@@ -1299,7 +1878,8 @@
                         <input
                             type="hidden"
                             name="district"
-                            value="{{ $selectedDistrict ?? '' }}"
+                            id="checkout_district"
+                            value=""
                         >
 
 
@@ -1307,7 +1887,7 @@
                             type="submit"
                             class="btn-red"
 
-                            @if(empty($employee['database_id']) || empty($selectedBoxId) || empty($selectedDistrict))
+                            @if(empty($employee['database_id']))
                                 disabled
                             @endif
                         >
@@ -1336,144 +1916,508 @@
      ============================================================= -->
 
 <script>
-
 document.addEventListener('DOMContentLoaded', function () {
 
-    const visibleBoxInput =
-        document.getElementById('box_id');
-
-    const visibleDistrictInput =
-        document.getElementById('district');
-const checkoutForm =
-        document.getElementById('checkout-form');
-const serviceDescriptions =
-        document.querySelectorAll('.service-description');
-/*
+    /*
     |--------------------------------------------------------------------------
-    | HELPER UPDATE HIDDEN INPUT
+    | DATA SERVICE AREA DARI FILE KANTOR
+    |--------------------------------------------------------------------------
+    | Label "SA" hanya sebagai pengelompokan dan tidak ikut ke kode ODC akhir.
     |--------------------------------------------------------------------------
     */
 
-    function setHiddenValue(form, name, value)
-    {
-        if (!form) {
+    const serviceAreaData = {
+        'TUREN': [
+            { code: 'APG', name: 'AMPELGADING' },
+            { code: 'BNR', name: 'BANTUR' },
+            { code: 'SBM', name: 'SUMBERMANJING' },
+            { code: 'DPT', name: 'DAMPIT' },
+            { code: 'GDI', name: 'GONDANGLEGI' },
+            { code: 'TUR', name: 'TUREN' }
+        ],
+        'KEPANJEN': [
+            { code: 'GKW', name: 'GUNUNGKAWI' },
+            { code: 'KPN', name: 'KEPANJEN' },
+            { code: 'PGK', name: 'PAGAK' },
+            { code: 'DNO', name: 'DONOMULYO' },
+            { code: 'SBP', name: 'SUMBERPUCUNG' },
+            { code: 'GDG', name: 'GADANG' }
+        ],
+        'BATU': [
+            { code: 'BTU', name: 'BATU' },
+            { code: 'KPO', name: 'KARANGPLOSO' },
+            { code: 'NTG', name: 'NGANTANG' }
+        ],
+        'BLIMBING': [
+            { code: 'BLB', name: 'BLIMBING' }
+        ],
+        'SINGOSARI': [
+            { code: 'SGS', name: 'SINGOSARI' },
+            { code: 'TMP', name: 'TUMPANG' },
+            { code: 'LWG', name: 'LAWANG' },
+            { code: 'PKS', name: 'PAKIS' }
+        ],
+        'KLOJEN': [
+            { code: 'KLJ', name: 'KLOJEN' }
+        ],
+        'MALANG': [
+            { code: 'MLG', name: 'MALANG' },
+            { code: 'BRG', name: 'BURING' },
+            { code: 'SWJ', name: 'SAWOJAJAR' }
+        ],
+        'BLITAR': [
+            { code: 'BLR', name: 'BLITAR' },
+            { code: 'BNU', name: 'BINANGUN' },
+            { code: 'KBN', name: 'KESAMBEN' },
+            { code: 'LDY', name: 'LODOYO' },
+            { code: 'PAN', name: 'PANATARAN' },
+            { code: 'SNT', name: 'SRENGAT' },
+            { code: 'WGI', name: 'WLINGI' }
+        ],
+        'TULUNG AGUNG': [
+            { code: 'CAT', name: 'CAMPURDARAT' },
+            { code: 'KWR', name: 'KALIDAWIR' },
+            { code: 'NGU', name: 'NGUNUT' },
+            { code: 'TUL', name: 'TULUNGAGUNG' }
+        ]
+    };
+
+    const validOdcSuffixes = ['FA', 'FB', 'FC', 'FD', 'FE', 'FF', 'FG', 'FH', 'FI', 'FJ', 'FK', 'FL', 'FM', 'FN', 'FO', 'FP', 'FQ', 'FR', 'FS', 'FT', 'FU', 'FV', 'FW', 'FX', 'FY', 'FZ', 'FAA', 'FAB', 'FAC', 'FAD', 'FAE', 'FAF', 'FAG', 'FAH', 'FAI', 'FAJ', 'FAK', 'FAL', 'FAM', 'FAN', 'FAO', 'FAP', 'FAQ', 'FAR', 'FAS', 'FAT', 'FAU', 'FAV', 'FAW', 'FAX', 'FAY', 'FAZ'];
+
+    const serviceAreaInput = document.getElementById('service_area');
+    const stoInput = document.getElementById('sto_location');
+    const stoList = document.getElementById('sto-location-list');
+    const suffixInput = document.getElementById('odc_suffix');
+    const codeSuggestions = document.getElementById('odc-code-suggestions');
+
+    let codeActiveIndex = -1;
+
+
+    const odcResult = document.getElementById('odc-result');
+    const odcFinalCode = document.getElementById('odc-final-code');
+
+    const checkoutForm = document.getElementById('checkout-form');
+    const checkoutButton = checkoutForm
+        ? checkoutForm.querySelector('button[type="submit"]')
+        : null;
+
+    const employeeInput = checkoutForm
+        ? checkoutForm.querySelector('input[name="karyawan_id"]')
+        : null;
+
+    const hiddenBoxId = document.getElementById('checkout_box_id');
+    const hiddenDistrict = document.getElementById('checkout_district');
+    const hiddenOdcCode = document.getElementById('checkout_odc_code');
+    const hiddenServiceArea = document.getElementById('checkout_service_area');
+    const hiddenStoCode = document.getElementById('checkout_sto_code');
+    const hiddenOdcSuffix = document.getElementById('checkout_odc_suffix');
+
+
+    function normalize(value) {
+        return (value || '').trim().toUpperCase();
+    }
+
+
+    function resolveServiceArea() {
+        const typed = normalize(serviceAreaInput ? serviceAreaInput.value : '');
+
+        return Object.keys(serviceAreaData).find(function (key) {
+            return normalize(key) === typed;
+        }) || '';
+    }
+
+
+    function getSelectedSto() {
+        const serviceArea = resolveServiceArea();
+
+        if (!serviceArea || !stoInput) {
+            return null;
+        }
+
+        const typed = normalize(stoInput.value);
+
+        return serviceAreaData[serviceArea].find(function (item) {
+            const display = item.code + ' - ' + item.name;
+
+            return normalize(display) === typed ||
+                   normalize(item.code) === typed ||
+                   normalize(item.name) === typed;
+        }) || null;
+    }
+
+
+    function resolveSuffix() {
+        const suffix = normalize(suffixInput ? suffixInput.value : '');
+
+        return validOdcSuffixes.includes(suffix)
+            ? suffix
+            : '';
+    }
+
+
+
+    function hideCodeSuggestions() {
+        if (!codeSuggestions) {
             return;
         }
 
-        const input =
-            form.querySelector(
-                'input[name="' + name + '"]'
-            );
-
-        if (input) {
-            input.value = value;
-        }
+        codeSuggestions.classList.remove('show');
+        codeSuggestions.innerHTML = '';
+        codeActiveIndex = -1;
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | SMART BOX + DISTRICT MANUAL
-    |--------------------------------------------------------------------------
-    */
+    function renderCodeSuggestions() {
+        if (!suffixInput || !codeSuggestions || suffixInput.disabled) {
+            hideCodeSuggestions();
+            return;
+        }
 
-    function syncManualLocation()
-    {
-        const boxValue =
-            visibleBoxInput
-                ? visibleBoxInput.value.trim()
-                : '';
+        const query = normalize(suffixInput.value);
 
-        const districtValue =
-            visibleDistrictInput
-                ? visibleDistrictInput.value.trim()
-                : '';
-setHiddenValue(
-            checkoutForm,
-            'box_id',
-            boxValue
+        /*
+        |--------------------------------------------------------------------------
+        | Tidak tampilkan seluruh daftar saat input masih kosong.
+        | Baru tampil setelah user mengetik minimal 1 karakter.
+        |--------------------------------------------------------------------------
+        */
+        if (query.length < 1) {
+            hideCodeSuggestions();
+            return;
+        }
+
+        const matches = validOdcSuffixes
+            .filter(function (code) {
+                return code.startsWith(query);
+            })
+            .slice(0, 8);
+
+        codeSuggestions.innerHTML = '';
+        codeActiveIndex = -1;
+
+        if (matches.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'odc-code-empty';
+            empty.textContent = 'Kode tidak ditemukan.';
+            codeSuggestions.appendChild(empty);
+            codeSuggestions.classList.add('show');
+            return;
+        }
+
+        matches.forEach(function (code) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'odc-code-option';
+            button.textContent = code;
+
+            button.addEventListener('mousedown', function (event) {
+                event.preventDefault();
+            });
+
+            button.addEventListener('click', function () {
+                suffixInput.value = code;
+                hideCodeSuggestions();
+                updateSelection();
+            });
+
+            codeSuggestions.appendChild(button);
+        });
+
+        codeSuggestions.classList.add('show');
+    }
+
+
+    function moveCodeActive(direction) {
+        if (!codeSuggestions) {
+            return;
+        }
+
+        const options = Array.from(
+            codeSuggestions.querySelectorAll('.odc-code-option')
         );
 
-        setHiddenValue(
-            checkoutForm,
-            'district',
-            districtValue
-        );
+        if (options.length === 0) {
+            return;
+        }
 
-        const employeeIdInput =
-            checkoutForm
-                ? checkoutForm.querySelector(
-                    'input[name="karyawan_id"]'
-                )
-                : null;
+        codeActiveIndex += direction;
 
-        const employeeId =
-            employeeIdInput
-                ? employeeIdInput.value.trim()
-                : '';
+        if (codeActiveIndex < 0) {
+            codeActiveIndex = options.length - 1;
+        }
 
-        const canSubmit =
-            employeeId !== '' &&
-            boxValue !== '' &&
-            districtValue !== '';
-if (checkoutForm) {
+        if (codeActiveIndex >= options.length) {
+            codeActiveIndex = 0;
+        }
 
-            const checkoutButton =
-                checkoutForm.querySelector(
-                    'button[type="submit"]'
-                );
+        options.forEach(function (option, index) {
+            option.classList.toggle(
+                'active',
+                index === codeActiveIndex
+            );
+        });
 
-            if (checkoutButton) {
-                checkoutButton.disabled =
-                    !canSubmit;
+        options[codeActiveIndex].scrollIntoView({
+            block: 'nearest'
+        });
+    }
+
+
+    function populateStoOptions() {
+        if (!stoInput || !stoList) {
+            return;
+        }
+
+        const serviceArea = resolveServiceArea();
+
+        stoList.innerHTML = '';
+        stoInput.value = '';
+
+        if (!serviceArea) {
+            stoInput.disabled = true;
+            stoInput.placeholder = 'Pilih Service Area terlebih dahulu...';
+
+            if (suffixInput) {
+                suffixInput.disabled = true;
+                suffixInput.value = '';
+                hideCodeSuggestions();
+            }
+
+            updateSelection();
+            return;
+        }
+
+        serviceAreaData[serviceArea].forEach(function (item) {
+            const option = document.createElement('option');
+            option.value = item.code + ' - ' + item.name;
+            stoList.appendChild(option);
+        });
+
+        stoInput.disabled = false;
+        stoInput.placeholder = 'Cari / pilih Lokasi atau kode STO...';
+
+        if (suffixInput) {
+            suffixInput.disabled = true;
+            suffixInput.value = '';
+            hideCodeSuggestions();
+        }
+
+        updateSelection();
+    }
+
+
+    function handleStoChange() {
+        const selectedSto = getSelectedSto();
+
+        if (suffixInput) {
+            suffixInput.disabled = !selectedSto;
+
+            if (!selectedSto) {
+                suffixInput.value = '';
+                hideCodeSuggestions();
             }
         }
+
+        updateSelection();
     }
 
 
-    if (visibleBoxInput) {
+    function updateSelection() {
+        const serviceArea = resolveServiceArea();
+        const sto = getSelectedSto();
+        const suffix = resolveSuffix();
 
-        visibleBoxInput.addEventListener(
-            'input',
-            syncManualLocation
-        );
+        const employeeId = employeeInput
+            ? employeeInput.value.trim()
+            : '';
 
-        visibleBoxInput.addEventListener(
-            'change',
-            syncManualLocation
-        );
+        const boxId = hiddenBoxId
+            ? hiddenBoxId.value.trim()
+            : '';
+
+        let finalCode = '';
+
+        if (sto && suffix) {
+            finalCode = 'ODC-' + sto.code + '-' + suffix;
+        }
+
+        if (hiddenDistrict) {
+            hiddenDistrict.value = serviceArea;
+        }
+
+        if (hiddenServiceArea) {
+            hiddenServiceArea.value = serviceArea;
+        }
+
+        if (hiddenStoCode) {
+            hiddenStoCode.value = sto ? sto.code : '';
+        }
+
+        if (hiddenOdcSuffix) {
+            hiddenOdcSuffix.value = suffix;
+        }
+
+        if (hiddenOdcCode) {
+            hiddenOdcCode.value = finalCode;
+        }
+
+        if (odcFinalCode) {
+            odcFinalCode.textContent = finalCode || '-';
+        }
+
+        if (odcResult) {
+            if (finalCode) {
+                odcResult.classList.add('ready');
+                odcResult.firstChild.textContent = 'ODC siap digunakan untuk proses Checkout. ';
+            } else {
+                odcResult.classList.remove('ready');
+            }
+        }
+
+        const canCheckout =
+            employeeId !== '' &&
+            boxId !== '' &&
+            serviceArea !== '' &&
+            sto !== null &&
+            suffix !== '' &&
+            finalCode !== '';
+
+        if (checkoutButton) {
+            checkoutButton.disabled = !canCheckout;
+        }
     }
 
 
-    if (visibleDistrictInput) {
+    if (serviceAreaInput) {
+        serviceAreaInput.addEventListener('input', function () {
+            const exactArea = resolveServiceArea();
 
-        visibleDistrictInput.addEventListener(
-            'input',
-            syncManualLocation
-        );
+            if (exactArea) {
+                populateStoOptions();
+            } else {
+                if (stoInput) {
+                    stoInput.disabled = true;
+                    stoInput.value = '';
+                }
 
-        visibleDistrictInput.addEventListener(
-            'change',
-            syncManualLocation
-        );
+                if (suffixInput) {
+                    suffixInput.disabled = true;
+                    suffixInput.value = '';
+                }
+
+                updateSelection();
+            }
+        });
+
+        serviceAreaInput.addEventListener('change', populateStoOptions);
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | CHECKOUT
-    |--------------------------------------------------------------------------
-    */
+    if (stoInput) {
+        stoInput.addEventListener('input', handleStoChange);
+        stoInput.addEventListener('change', handleStoChange);
+    }
+
+
+    if (suffixInput) {
+        suffixInput.addEventListener('input', function () {
+            /*
+            |--------------------------------------------------------------------------
+            | Otomatis kapital, contoh: fa -> FA
+            |--------------------------------------------------------------------------
+            */
+            const caret = suffixInput.selectionStart;
+            suffixInput.value = suffixInput.value.toUpperCase();
+
+            if (typeof caret === 'number') {
+                suffixInput.setSelectionRange(caret, caret);
+            }
+
+            renderCodeSuggestions();
+            updateSelection();
+        });
+
+        suffixInput.addEventListener('focus', function () {
+            renderCodeSuggestions();
+        });
+
+        suffixInput.addEventListener('keydown', function (event) {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                moveCodeActive(1);
+                return;
+            }
+
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                moveCodeActive(-1);
+                return;
+            }
+
+            if (event.key === 'Enter') {
+                const options = codeSuggestions
+                    ? Array.from(
+                        codeSuggestions.querySelectorAll('.odc-code-option')
+                    )
+                    : [];
+
+                if (
+                    codeActiveIndex >= 0 &&
+                    options[codeActiveIndex]
+                ) {
+                    event.preventDefault();
+                    options[codeActiveIndex].click();
+                }
+
+                return;
+            }
+
+            if (event.key === 'Escape') {
+                hideCodeSuggestions();
+            }
+        });
+
+        suffixInput.addEventListener('blur', function () {
+            window.setTimeout(hideCodeSuggestions, 120);
+        });
+    }
+
 
     if (checkoutForm) {
+        checkoutForm.addEventListener('submit', function (event) {
+            updateSelection();
 
-        checkoutForm.addEventListener(
-            'submit',
-            function ()
-            {
-                syncManualLocation();
+            const serviceArea = resolveServiceArea();
+            const sto = getSelectedSto();
+            const suffix = resolveSuffix();
+            const finalCode = hiddenOdcCode
+                ? hiddenOdcCode.value.trim()
+                : '';
+
+            if (!serviceArea) {
+                event.preventDefault();
+                alert('Silakan pilih Service Area yang valid.');
+                return;
             }
-        );
+
+            if (!sto) {
+                event.preventDefault();
+                alert('Silakan pilih Lokasi / STO yang valid.');
+                return;
+            }
+
+            if (!suffix) {
+                event.preventDefault();
+                alert('Silakan pilih Kode ODC yang valid.');
+                return;
+            }
+
+            if (!finalCode) {
+                event.preventDefault();
+                alert('Kode ODC belum terbentuk.');
+                return;
+            }
+        });
     }
 
 
@@ -1483,59 +2427,124 @@ if (checkoutForm) {
     |--------------------------------------------------------------------------
     */
 
+    const serviceDescriptions =
+        document.querySelectorAll('.service-description');
+
     const editButton =
-        document.getElementById(
-            'edit-service-button'
-        );
+        document.getElementById('edit-service-button');
 
     if (editButton) {
+        editButton.addEventListener('click', function () {
+            let target = null;
 
-        editButton.addEventListener(
-            'click',
-            function ()
-            {
-                let target = null;
-
-                serviceDescriptions.forEach(
-                    function (textarea)
-                    {
-                        if (
-                            !target &&
-                            textarea.value.trim() !== ''
-                        ) {
-                            target = textarea;
-                        }
-                    }
-                );
-
+            serviceDescriptions.forEach(function (textarea) {
                 if (
                     !target &&
-                    serviceDescriptions.length > 0
+                    textarea.value.trim() !== ''
                 ) {
-                    target =
-                        serviceDescriptions[0];
+                    target = textarea;
                 }
+            });
 
-                if (target) {
-                    target.focus();
-                }
+            if (
+                !target &&
+                serviceDescriptions.length > 0
+            ) {
+                target = serviceDescriptions[0];
             }
-        );
+
+            if (target) {
+                target.focus();
+            }
+        });
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | INITIAL STATE
-    |--------------------------------------------------------------------------
-    */
-
-    syncManualLocation();
-
+    updateSelection();
 });
-
 </script>
 
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const notificationToggle = document.getElementById('notification-toggle');
+    const notificationMenu = document.getElementById('notification-menu');
+
+    const profileToggle = document.getElementById('profile-toggle');
+    const profileMenu = document.getElementById('profile-menu');
+
+    function closeHeaderMenus(except = null) {
+        if (except !== 'notification' && notificationMenu) {
+            notificationMenu.classList.remove('show');
+
+            if (notificationToggle) {
+                notificationToggle.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        if (except !== 'profile' && profileMenu) {
+            profileMenu.classList.remove('show');
+
+            if (profileToggle) {
+                profileToggle.setAttribute('aria-expanded', 'false');
+            }
+        }
+    }
+
+    if (notificationToggle && notificationMenu) {
+        notificationToggle.addEventListener('click', function (event) {
+            event.stopPropagation();
+
+            const willOpen =
+                !notificationMenu.classList.contains('show');
+
+            closeHeaderMenus('notification');
+            notificationMenu.classList.toggle('show', willOpen);
+
+            notificationToggle.setAttribute(
+                'aria-expanded',
+                willOpen ? 'true' : 'false'
+            );
+        });
+
+        notificationMenu.addEventListener('click', function (event) {
+            event.stopPropagation();
+        });
+    }
+
+    if (profileToggle && profileMenu) {
+        profileToggle.addEventListener('click', function (event) {
+            event.stopPropagation();
+
+            const willOpen =
+                !profileMenu.classList.contains('show');
+
+            closeHeaderMenus('profile');
+            profileMenu.classList.toggle('show', willOpen);
+
+            profileToggle.setAttribute(
+                'aria-expanded',
+                willOpen ? 'true' : 'false'
+            );
+        });
+
+        profileMenu.addEventListener('click', function (event) {
+            event.stopPropagation();
+        });
+    }
+
+    document.addEventListener('click', function () {
+        closeHeaderMenus();
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeHeaderMenus();
+        }
+    });
+});
+</script>
 
 </body>
 

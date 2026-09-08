@@ -25,9 +25,15 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])
     ->name('logout');
 
-Route::get('/register', [RegisterController::class, 'show'])->name('register');
-Route::post('/register', [RegisterController::class, 'store']);
-
+/*
+|--------------------------------------------------------------------------
+| REGISTER PUBLIK
+|--------------------------------------------------------------------------
+|
+| Register publik dinonaktifkan untuk menjaga keamanan role Super Admin.
+| Super Admin baru dibuat melalui menu "Kelola Super Admin".
+|
+*/
 
 // ====================
 // ADMIN
@@ -53,6 +59,15 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/profile', [DashboardController::class, 'profile'])->name('profile');
 
+    Route::put('/profile', [DashboardController::class, 'updateProfile'])
+        ->name('profile.update');
+
+    Route::post('/notifications/{id}/read', [DashboardController::class, 'markNotificationRead'])
+        ->name('notifications.read');
+
+    Route::post('/notifications/read-all', [DashboardController::class, 'markAllNotificationsRead'])
+        ->name('notifications.readAll');
+
     Route::get('/checkin', [DashboardController::class, 'checkin'])->name('checkin');
 
     Route::post('/checkin', [DashboardController::class, 'storeCheckin'])
@@ -61,7 +76,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/checkin/checkout', [DashboardController::class, 'storeCheckout'])
         ->name('checkin.checkout');
 });
-
 
 // ====================
 // SUPER ADMIN
@@ -78,23 +92,18 @@ Route::middleware('superadmin')->prefix('super-admin')->group(function () {
     Route::post('/karyawan', [DashboardController::class, 'storeSuperAdminEmployee'])
         ->name('karyawan.super.store');
 
-    // Edit data karyawan
     Route::put('/karyawan/{id}', [DashboardController::class, 'updateSuperAdminEmployee'])
         ->name('karyawan.super.update');
 
-    // Hapus data karyawan
     Route::delete('/karyawan/{id}', [DashboardController::class, 'deleteSuperAdminEmployee'])
         ->name('karyawan.super.delete');
 
-    // Approve karyawan
     Route::post('/karyawan/{id}/approve', [DashboardController::class, 'approveEmployee'])
         ->name('karyawan.approve');
 
-    // Tolak karyawan
     Route::post('/karyawan/{id}/reject', [DashboardController::class, 'rejectEmployee'])
         ->name('karyawan.reject');
 
-    // Aktifkan / Nonaktifkan karyawan dari modal Detail
     Route::patch('/karyawan/{id}/status', [DashboardController::class, 'updateSuperAdminEmployeeStatus'])
         ->name('karyawan.super.status');
 
@@ -105,6 +114,19 @@ Route::middleware('superadmin')->prefix('super-admin')->group(function () {
 
     Route::get('/profile', [DashboardController::class, 'superAdminProfile'])
         ->name('profile.super');
+
+    // Kelola Super Admin
+    Route::get('/users', [DashboardController::class, 'superAdminUsers'])
+        ->name('super.users');
+
+    Route::post('/users', [DashboardController::class, 'storeSuperAdminUser'])
+        ->name('super.users.store');
+
+    Route::put('/users/{id}', [DashboardController::class, 'updateSuperAdminUser'])
+        ->name('super.users.update');
+
+    Route::delete('/users/{id}', [DashboardController::class, 'deleteSuperAdminUser'])
+        ->name('super.users.delete');
     Route::put('/profile', [DashboardController::class, 'updateSuperAdminProfile'])
         ->name('profile.super.update');
 });

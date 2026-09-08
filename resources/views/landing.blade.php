@@ -1002,7 +1002,6 @@
             </nav>
 
             <div class="nav-actions">
-                <a class="btn btn-outline" href="{{ route('register') }}">Register</a>
                 <a class="btn btn-primary" href="{{ route('login') }}">Masuk</a>
 
                 <button
