@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -2326,24 +2327,158 @@ class DashboardController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | PROFILE ADMIN
+    | PROFILE ADMIN / TEKNISI
     |--------------------------------------------------------------------------
     */
 
     public function profile()
     {
-        $user = [
-            'nama' => 'Admin Smart Key',
-            'nama_lengkap' => 'Administrator Smart Key',
-            'email' => 'admin@smartkey.com',
-            'nomor_hp' => '081234567890',
-            'role' => 'Administrator',
+        $authUser = Auth::user();
+
+        if (!$authUser) {
+            return redirect()->route('login');
+        }
+
+        $linkedKaryawan = null;
+
+        if (!empty($authUser->email)) {
+            $linkedKaryawan = Karyawan::where('email', $authUser->email)
+                ->first();
+        }
+
+        $profile = [
+            'nama' => $authUser->username
+                ?? $authUser->nama_lengkap
+                ?? 'Admin',
+            'nama_lengkap' => $authUser->nama_lengkap
+                ?? $linkedKaryawan?->nama_lengkap
+                ?? '-',
+            'email' => $authUser->email ?? '-',
+            'nomor_hp' => $authUser->nomor_hp ?? '',
+            'role' => strtolower((string) ($authUser->role ?? 'admin')) === 'super_admin'
+                ? 'Super Admin'
+                : 'Administrator / Teknisi',
+            'foto_profil' => $authUser->foto_profil ?? null,
         ];
 
         return view(
             'auth.profileadmin',
-            compact('user')
+            [
+                'user' => $profile,
+                'linkedKaryawan' => $linkedKaryawan,
+            ]
         );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE PROFILE ADMIN / TEKNISI
+    |--------------------------------------------------------------------------
+    */
+
+    public function updateProfile(Request $request)
+    {
+        $authUser = Auth::user();
+
+        if (!$authUser) {
+            return redirect()->route('login');
+        }
+
+        $oldEmail = $authUser->email;
+
+        $linkedKaryawan = !empty($oldEmail)
+            ? Karyawan::where('email', $oldEmail)->first()
+            : null;
+
+        $validated = $request->validate([
+            'username' => 'required|string|max:100',
+            'nama_lengkap' => 'required|string|max:150',
+            'email' => [
+                'required',
+                'email',
+                'max:150',
+                Rule::unique('users', 'email')->ignore($authUser->id),
+                Rule::unique('karyawans', 'email')->ignore($linkedKaryawan?->id),
+            ],
+            'nomor_hp' => 'nullable|string|max:30',
+            'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'current_password' => 'nullable|string',
+            'password' => 'nullable|string|min:6|confirmed',
+        ]);
+
+        if (!empty($validated['password'])) {
+            if (empty($validated['current_password'])) {
+                return back()
+                    ->withErrors([
+                        'current_password' => 'Kata sandi saat ini wajib diisi untuk mengganti password.',
+                    ])
+                    ->withInput();
+            }
+
+            if (!Hash::check($validated['current_password'], $authUser->password)) {
+                return back()
+                    ->withErrors([
+                        'current_password' => 'Kata sandi saat ini tidak sesuai.',
+                    ])
+                    ->withInput();
+            }
+        }
+
+        DB::transaction(function () use (
+            $request,
+            $validated,
+            $authUser,
+            $linkedKaryawan
+        ) {
+            $authUser->username = $validated['username'];
+            $authUser->nama_lengkap = $validated['nama_lengkap'];
+            $authUser->email = $validated['email'];
+            $authUser->nomor_hp = $validated['nomor_hp'] ?? null;
+
+            if ($request->hasFile('foto_profil')) {
+                if (
+                    !empty($authUser->foto_profil) &&
+                    str_starts_with((string) $authUser->foto_profil, 'storage/')
+                ) {
+                    $oldPath = substr((string) $authUser->foto_profil, 8);
+
+                    if ($oldPath !== '') {
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                }
+
+                $storedPath = $request->file('foto_profil')
+                    ->store('profile', 'public');
+
+                $authUser->foto_profil = 'storage/' . $storedPath;
+            }
+
+            if (!empty($validated['password'])) {
+                $authUser->password = $validated['password'];
+            }
+
+            $authUser->save();
+
+            /*
+            |--------------------------------------------------------------------------
+            | SINKRONKAN DATA KARYAWAN
+            |--------------------------------------------------------------------------
+            |
+            | Email dan nama harus tetap sama agar akun login tetap terhubung
+            | dengan profil karyawan untuk proses RFID / Checkin / Checkout.
+            |
+            */
+            if ($linkedKaryawan) {
+                $linkedKaryawan->nama_lengkap = $validated['nama_lengkap'];
+                $linkedKaryawan->email = $validated['email'];
+                $linkedKaryawan->save();
+            }
+        });
+
+        return redirect()
+            ->route('profile')
+            ->with('success', 'Profil berhasil diperbarui.');
     }
 
     /*
@@ -2419,7 +2554,155 @@ class DashboardController extends Controller
             } else {
                 $karyawan = $candidate;
                 $rfidState = 'ready';
-                $rfidMessage = 'ID Card berhasil diverifikasi. Profil karyawan siap digunakan untuk proses Checkin/Checkout.';
+
+                /*
+                |--------------------------------------------------------------------------
+                | CHECKIN OTOMATIS SAAT RFID BERHASIL DIVERIFIKASI
+                |--------------------------------------------------------------------------
+                |
+                | Pada versi final, blok ini nantinya dipicu oleh perangkat RFID/IoT.
+                | Untuk sementara, pencarian ID Card / nama berfungsi sebagai simulasi
+                | pembacaan RFID.
+                |
+                | Penting:
+                | - Tidak membuat Checkin ganda jika masih ada sesi aktif.
+                | - ID karyawan selalu mengikuti karyawan yang terverifikasi.
+                | - Smart Box sementara memakai box aktif yang tersedia.
+                |
+                */
+
+                $activeCheckin = DB::table('checkin_checkouts')
+                    ->where('karyawan_id', $candidate->id)
+                    ->whereIn('status', ['chekin', 'checkin'])
+                    ->whereNull('jam_checkout')
+                    ->orderByDesc('id')
+                    ->first();
+
+                if (
+                    !$activeCheckin &&
+                    !$request->boolean('skip_auto_checkin')
+                ) {
+                    $autoSmartBox = null;
+
+                    /*
+                    | Jika request membawa box_id yang valid dan aktif, gunakan itu.
+                    | Jika tidak, gunakan Smart Box aktif pertama sebagai simulasi
+                    | sampai perangkat IoT mengirim ID Smart Box sebenarnya.
+                    */
+                    if ($request->filled('box_id')) {
+                        $autoSmartBox = DB::table('smart_boxes')
+                            ->where('id', (int) $request->input('box_id'))
+                            ->where('status', 'aktif')
+                            ->first();
+                    }
+
+                    if (!$autoSmartBox) {
+                        $autoSmartBox = DB::table('smart_boxes')
+                            ->where('status', 'aktif')
+                            ->orderBy('id')
+                            ->first();
+                    }
+
+                    if ($autoSmartBox) {
+                        try {
+                            DB::beginTransaction();
+
+                            do {
+                                $kodeData = '#' . str_pad(
+                                    (string) random_int(1, 9999),
+                                    4,
+                                    '0',
+                                    STR_PAD_LEFT
+                                );
+
+                                $kodeExists = DB::table('checkin_checkouts')
+                                    ->where('kode_data', $kodeData)
+                                    ->exists();
+
+                            } while ($kodeExists);
+
+                            $now = now();
+
+                            DB::table('checkin_checkouts')->insert([
+                                'kode_data' => $kodeData,
+                                'karyawan_id' => $candidate->id,
+                                'smart_box_id' => $autoSmartBox->id,
+                                'district_id' => $autoSmartBox->district_id ?? null,
+                                'ods_id' => $candidate->ods_id ?? ($autoSmartBox->ods_id ?? null),
+                                'tanggal' => $now->format('Y-m-d'),
+                                'jam_checkin' => $now->format('H:i:s'),
+                                'jam_checkout' => null,
+                                'waktu_scan' => $now,
+                                'id_card_terbaca' => 1,
+                                'lokasi' => $autoSmartBox->lokasi ?? null,
+                                'status' => 'chekin',
+                                'approval_status' => 'pending',
+                                'approved_by' => null,
+                                'approved_at' => null,
+                                'akses_hasil' => 'berhasil',
+                                'created_at' => $now,
+                                'updated_at' => $now,
+                            ]);
+
+                            DB::commit();
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | NOTIFIKASI CHECKIN
+                            |--------------------------------------------------------------------------
+                            */
+                            if (
+                                Auth::check() &&
+                                Schema::hasTable('notifications')
+                            ) {
+                                DB::table('notifications')->insert([
+                                    'user_id' => Auth::id(),
+                                    'title' => 'Checkin Berhasil',
+                                    'message' =>
+                                        'Checkin otomatis ' .
+                                        $candidate->nama_lengkap .
+                                        ' berhasil dicatat pada ' .
+                                        $now->format('H:i') .
+                                        '.',
+                                    'is_read' => 0,
+                                    'created_at' => $now,
+                                ]);
+                            }
+
+                            $rfidMessage =
+                                'ID Card berhasil diverifikasi dan Checkin otomatis berhasil dicatat. ' .
+                                'Silakan pilih ODC, isi pekerjaan, lalu lakukan Checkout.';
+
+                        } catch (\Throwable $e) {
+                            DB::rollBack();
+                            report($e);
+
+                            $rfidState = 'error';
+                            $rfidMessage =
+                                'ID Card berhasil diverifikasi, tetapi Checkin otomatis gagal disimpan: ' .
+                                $e->getMessage();
+                        }
+
+                    } else {
+                        $rfidState = 'error';
+                        $rfidMessage =
+                            'ID Card berhasil diverifikasi, tetapi belum ada Smart Box aktif untuk membuat Checkin otomatis.';
+                    }
+
+                } elseif ($activeCheckin) {
+                    $rfidMessage =
+                        'ID Card berhasil diverifikasi. Checkin aktif sudah tercatat pada ' .
+                        ($activeCheckin->jam_checkin ?? '-') .
+                        '. Silakan lanjutkan proses Checkout.';
+
+                } else {
+                    /*
+                    | Dipakai setelah Checkout berhasil supaya redirect kembali ke halaman
+                    | tidak langsung membuat sesi Checkin baru.
+                    */
+                    $rfidMessage =
+                        'ID Card berhasil diverifikasi. Checkout terakhir sudah selesai.';
+                }
             }
         }
 
@@ -2531,6 +2814,34 @@ class DashboardController extends Controller
             ['title' => 'Maintenance', 'desc' => ''],
         ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | HEADER PROFILE + NOTIFIKASI
+        |--------------------------------------------------------------------------
+        */
+
+        $headerUser = Auth::user();
+
+        $notifications = collect();
+        $unreadNotificationCount = 0;
+
+        if (
+            $headerUser &&
+            Schema::hasTable('notifications')
+        ) {
+            $notifications = DB::table('notifications')
+                ->where('user_id', $headerUser->id)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->limit(8)
+                ->get();
+
+            $unreadNotificationCount = DB::table('notifications')
+                ->where('user_id', $headerUser->id)
+                ->where('is_read', 0)
+                ->count();
+        }
+
         return view(
             'auth.checkin',
             compact(
@@ -2543,7 +2854,10 @@ class DashboardController extends Controller
                 'selectedDistrict',
                 'rfidState',
                 'rfidMessage',
-                'loggedInKaryawan'
+                'loggedInKaryawan',
+                'headerUser',
+                'notifications',
+                'unreadNotificationCount'
             )
         );
     }
@@ -2969,17 +3283,91 @@ class DashboardController extends Controller
                 );
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | NOTIFIKASI CHECKOUT
+        |--------------------------------------------------------------------------
+        */
+        if (
+            Auth::check() &&
+            Schema::hasTable('notifications')
+        ) {
+            DB::table('notifications')->insert([
+                'user_id' => Auth::id(),
+                'title' => 'Checkout Berhasil',
+                'message' =>
+                    'Checkout ' .
+                    $karyawan->nama_lengkap .
+                    ' berhasil disimpan pada ' .
+                    $now->format('H:i') .
+                    '.',
+                'is_read' => 0,
+                'created_at' => $now,
+            ]);
+        }
+
         return redirect()
             ->route('checkin', [
                 'q' => $karyawan->id_card,
                 'box_id' => $smartBox->id,
                 'district' => $validated['district'],
+                'skip_auto_checkin' => 1,
             ])
             ->with(
                 'success',
                 'Checkout ' . $karyawan->nama_lengkap . ' berhasil disimpan.'
             );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TANDAI SATU NOTIFIKASI SUDAH DIBACA
+    |--------------------------------------------------------------------------
+    */
+
+    public function markNotificationRead($id)
+    {
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        if (Schema::hasTable('notifications')) {
+            DB::table('notifications')
+                ->where('id', $id)
+                ->where('user_id', Auth::id())
+                ->update([
+                    'is_read' => 1,
+                ]);
+        }
+
+        return back();
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TANDAI SEMUA NOTIFIKASI SUDAH DIBACA
+    |--------------------------------------------------------------------------
+    */
+
+    public function markAllNotificationsRead()
+    {
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        if (Schema::hasTable('notifications')) {
+            DB::table('notifications')
+                ->where('user_id', Auth::id())
+                ->where('is_read', 0)
+                ->update([
+                    'is_read' => 1,
+                ]);
+        }
+
+        return back();
+    }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -2990,6 +3378,158 @@ class DashboardController extends Controller
     | username pada tabel users wajib dan unique.
     |
     */
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | KELOLA SUPER ADMIN
+    |--------------------------------------------------------------------------
+    */
+
+    public function superAdminUsers(Request $request)
+    {
+        $search = trim((string) $request->query('q', ''));
+
+        $query = User::query()
+            ->where('role', 'super_admin');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('username', 'like', '%' . $search . '%')
+                    ->orWhere('nama_lengkap', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%')
+                    ->orWhere('nomor_hp', 'like', '%' . $search . '%');
+            });
+        }
+
+        $superAdmins = $query
+            ->orderByDesc('id')
+            ->paginate(8)
+            ->withQueryString();
+
+        return view(
+            'auth.superadminusers',
+            compact('superAdmins', 'search')
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TAMBAH SUPER ADMIN
+    |--------------------------------------------------------------------------
+    */
+
+    public function storeSuperAdminUser(Request $request)
+    {
+        $data = $request->validate([
+            'username' => 'required|string|max:50|unique:users,username',
+            'nama_lengkap' => 'required|string|max:150',
+            'email' => 'required|email|max:150|unique:users,email',
+            'nomor_hp' => 'required|string|max:20',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        User::create([
+            'username' => $data['username'],
+            'nama_lengkap' => $data['nama_lengkap'],
+            'email' => $data['email'],
+            'nomor_hp' => $data['nomor_hp'],
+            'password' => Hash::make($data['password']),
+            'role' => 'super_admin',
+        ]);
+
+        return redirect()
+            ->route('super.users')
+            ->with('success', 'Super Admin baru berhasil ditambahkan dan sudah dapat digunakan untuk login.');
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE SUPER ADMIN
+    |--------------------------------------------------------------------------
+    */
+
+    public function updateSuperAdminUser(Request $request, $id)
+    {
+        $superAdmin = User::where('role', 'super_admin')->findOrFail($id);
+
+        $data = $request->validate([
+            'username' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('users', 'username')->ignore($superAdmin->id),
+            ],
+            'nama_lengkap' => 'required|string|max:150',
+            'email' => [
+                'required',
+                'email',
+                'max:150',
+                Rule::unique('users', 'email')->ignore($superAdmin->id),
+            ],
+            'nomor_hp' => 'required|string|max:20',
+            'password' => 'nullable|string|min:6|confirmed',
+        ]);
+
+        $superAdmin->username = $data['username'];
+        $superAdmin->nama_lengkap = $data['nama_lengkap'];
+        $superAdmin->email = $data['email'];
+        $superAdmin->nomor_hp = $data['nomor_hp'];
+
+        if (!empty($data['password'])) {
+            $superAdmin->password = Hash::make($data['password']);
+        }
+
+        $superAdmin->role = 'super_admin';
+        $superAdmin->save();
+
+        return redirect()
+            ->route('super.users')
+            ->with('success', 'Data Super Admin berhasil diperbarui.');
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | HAPUS SUPER ADMIN
+    |--------------------------------------------------------------------------
+    */
+
+    public function deleteSuperAdminUser($id)
+    {
+        $superAdmin = User::where('role', 'super_admin')->findOrFail($id);
+
+        if ((int) Auth::id() === (int) $superAdmin->id) {
+            return redirect()
+                ->route('super.users')
+                ->withErrors([
+                    'delete' => 'Akun Super Admin yang sedang digunakan tidak dapat dihapus.',
+                ]);
+        }
+
+        $totalSuperAdmin = User::where('role', 'super_admin')->count();
+
+        if ($totalSuperAdmin <= 1) {
+            return redirect()
+                ->route('super.users')
+                ->withErrors([
+                    'delete' => 'Minimal harus ada satu akun Super Admin di dalam sistem.',
+                ]);
+        }
+
+        $name = $superAdmin->nama_lengkap
+            ?? $superAdmin->username
+            ?? $superAdmin->email;
+
+        $superAdmin->delete();
+
+        return redirect()
+            ->route('super.users')
+            ->with('success', 'Super Admin ' . $name . ' berhasil dihapus.');
+    }
+
 
     private function generateUniqueEmployeeUsername(string $name): string
     {
